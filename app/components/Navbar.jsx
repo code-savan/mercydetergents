@@ -3,9 +3,19 @@
 import React, { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const pathname = usePathname()
+
+  // Check if a path is the current active route
+  const isActive = (path) => {
+    if (path === '/') {
+      return pathname === path
+    }
+    return pathname.startsWith(path)
+  }
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-b-slate-300">
@@ -48,7 +58,7 @@ const Navbar = () => {
 
       {/* Mobile Menu / Sidebar */}
       <div
-        className={`fixed top-0 bottom-0 right-0 bg-white transition-transform duration-300 w-full md:w-[450px] pt-[72px] ${
+        className={`fixed top-0 bottom-0 right-0 bg-white transition-transform duration-300 w-full md:w-[550px] pt-[72px] flex flex-col justify-between ${
           isMenuOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
@@ -56,37 +66,44 @@ const Navbar = () => {
           <button onClick={() => setIsMenuOpen(false)}>Close</button>
         </div>
 
-        <div className="container mx-auto px-4 py-8">
-          <div className="flex flex-col gap-8 text-[64px] font-antonio">
+        <div className="container mx-auto py-8">
+          <div className="flex flex-col font-antonio">
             <Link
               href="/"
-              className="hover:opacity-60 transition-opacity"
+              className={`text-[64px] py-4 px-6 transition-all duration-300 w-full ${isActive('/') ? 'border-l-4 border-black' : 'hover:bg-black hover:text-white'}`}
               onClick={() => setIsMenuOpen(false)}
             >
               Home
             </Link>
             <Link
               href="/about-us"
-              className="hover:opacity-60 transition-opacity"
+              className={`text-[64px] py-4 px-6 transition-all duration-300 w-full ${isActive('/about-us') ? 'border-l-4 border-black' : 'hover:bg-black hover:text-white'}`}
               onClick={() => setIsMenuOpen(false)}
             >
               About Us
             </Link>
             <Link
               href="/products"
-              className="hover:opacity-60 transition-opacity"
+              className={`text-[64px] py-4 px-6 transition-all duration-300 w-full ${isActive('/products') ? 'border-l-4 border-black' : 'hover:bg-black hover:text-white'}`}
               onClick={() => setIsMenuOpen(false)}
             >
               Products
             </Link>
             <Link
               href="/contact-us"
-              className="hover:opacity-60 transition-opacity"
+              className={`text-[64px] py-4 px-6 transition-all duration-300 w-full ${isActive('/contact-us') ? 'border-l-4 border-black' : 'hover:bg-black hover:text-white'}`}
               onClick={() => setIsMenuOpen(false)}
             >
               Contact Us
             </Link>
           </div>
+        </div>
+
+        {/* Tagline component */}
+        <div className="bg-[#1E1E1E] p-8 w-full">
+          <p className="text-[#B5B5B5] text-[20px] leading-tight">
+            Powerful, mess-free detergent designed for everyday use.
+          </p>
         </div>
       </div>
     </nav>
