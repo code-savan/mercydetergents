@@ -43,17 +43,23 @@ export default function AdminLayout({ children, title }) {
                 Products
               </Link>
             </li>
-            <li className="opacity-50">
-              <span className="flex items-center px-4 py-3 text-sm">
+            <li>
+              <Link
+                href="/admin/orders"
+                className={`flex items-center px-4 py-3 text-sm ${isActive('/admin/orders') ? 'bg-black text-white' : 'hover:bg-gray-50'}`}
+              >
                 <span className="material-icons-outlined text-lg mr-3">shopping_bag</span>
                 Orders
-              </span>
+              </Link>
             </li>
-            <li className="opacity-50">
-              <span className="flex items-center px-4 py-3 text-sm">
+            <li>
+              <Link
+                href="/admin/customers"
+                className={`flex items-center px-4 py-3 text-sm ${isActive('/admin/customers') ? 'bg-black text-white' : 'hover:bg-gray-50'}`}
+              >
                 <span className="material-icons-outlined text-lg mr-3">people</span>
                 Customers
-              </span>
+              </Link>
             </li>
           </ul>
         </nav>

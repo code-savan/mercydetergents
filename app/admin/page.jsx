@@ -19,22 +19,26 @@ export default function AdminDashboard() {
           </Link>
         </div>
 
-        <div className="bg-white border border-gray-100 p-6 opacity-50">
+        <div className="bg-white border border-gray-100 p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-medium">Orders</h3>
             <span className="material-icons-outlined">shopping_bag</span>
           </div>
-          <p className="text-3xl font-medium mb-2">--</p>
-          <p className="text-xs text-gray-500">Coming soon</p>
+          <p className="text-3xl font-medium mb-2">5</p>
+          <Link href="/admin/orders" className="text-sm text-blue-600 hover:underline">
+            Manage orders
+          </Link>
         </div>
 
-        <div className="bg-white border border-gray-100 p-6 opacity-50">
+        <div className="bg-white border border-gray-100 p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-medium">Customers</h3>
             <span className="material-icons-outlined">people</span>
           </div>
-          <p className="text-3xl font-medium mb-2">--</p>
-          <p className="text-xs text-gray-500">Coming soon</p>
+          <p className="text-3xl font-medium mb-2">6</p>
+          <Link href="/admin/customers" className="text-sm text-blue-600 hover:underline">
+            Manage customers
+          </Link>
         </div>
       </div>
 
