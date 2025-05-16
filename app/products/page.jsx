@@ -4,6 +4,7 @@ import Link from 'next/link'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import Newsletter from '../components/Newsletter'
+import { products } from '../data/products'
 
 export const metadata = {
   title: 'Products | Mercy Peter Detergents',
@@ -30,22 +31,6 @@ const ProductCard = ({ id, image, title, price }) => {
 }
 
 export default function ProductsPage() {
-  // Product data
-  const products = [
-    { id: '1', image: '/bucket1.png', title: 'Lavender Floor cleaner', price: '30' },
-    { id: '2', image: '/bucket2.png', title: 'Lime Floor cleaner', price: '30' },
-    { id: '3', image: '/bucket3.png', title: 'Laundry Detergent', price: '30' },
-    { id: '4', image: '/bucket4.png', title: 'Pods', price: '30' },
-    { id: '5', image: '/bucket5.png', title: 'Fabric Softener', price: '30' },
-    { id: '6', image: '/bucket6.png', title: 'Multi-Surface Cleaner', price: '30' },
-    { id: '7', image: '/bucket7.png', title: 'Dish Soap', price: '30' },
-    { id: '8', image: '/bucket8.png', title: 'Stain Remover', price: '30' },
-    { id: '9', image: '/bucket9.png', title: 'Bathroom Cleaner', price: '30' },
-    { id: '10', image: '/bucket10.png', title: 'Glass Cleaner', price: '30' },
-    { id: '11', image: '/bucket11.png', title: 'Carpet Cleaner', price: '30' },
-    { id: '12', image: '/bucket12.png', title: 'Disinfectant Spray', price: '30' },
-  ]
-
   return (
     <div className="pt-[80px]">
       <Navbar />
