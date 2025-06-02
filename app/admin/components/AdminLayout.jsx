@@ -3,11 +3,10 @@
 import React from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useAuth } from '../../auth/AuthContext'
-import LogoutButton from '../../components/LogoutButton'
+// import { useAuth } from '@/app/context/AuthContext'
 
 export default function AdminLayout({ children, title }) {
-  const { user } = useAuth()
+//   const { user, signOut } = useAuth()
   const pathname = usePathname()
 
   const isActive = (path) => {
@@ -87,9 +86,14 @@ export default function AdminLayout({ children, title }) {
 
           <div className="flex items-center gap-4">
             <span className="text-sm text-gray-500 hidden md:inline-block">
-              {user?.email}
+              mercypeter@gmail.com
             </span>
-            <LogoutButton />
+            <button
+            //   onClick={signOut}
+              className="text-sm text-gray-600 hover:text-gray-900"
+            >
+              Sign out
+            </button>
           </div>
         </header>
 

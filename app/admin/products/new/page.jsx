@@ -2,10 +2,13 @@
 
 import React, { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 import AdminLayout from '../../components/AdminLayout'
 import ImageUpload from '../../components/ImageUpload'
 
 export default function AddProduct() {
+  const router = useRouter()
   const [formData, setFormData] = useState({
     title: '',
     price: '',
@@ -13,7 +16,6 @@ export default function AddProduct() {
     image: ''
   })
   const [isLoading, setIsLoading] = useState(false)
-  const [message, setMessage] = useState({ type: '', text: '' })
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -24,16 +26,16 @@ export default function AddProduct() {
   }
 
   const handleImageChange = (file) => {
-    // In a real app with Supabase, this would handle uploading
-    // For now, we'll just update the local state
     if (file) {
-      // Mock success - in real app, we'd get back a URL from Supabase
-      setFormData(prev => ({
-        ...prev,
-        image: '/bucket1.png' // Placeholder path for demo
-      }))
+      const reader = new FileReader()
+      reader.onload = () => {
+        setFormData(prev => ({
+          ...prev,
+          image: reader.result
+        }))
+      }
+      reader.readAsDataURL(file)
     } else {
-      // Reset image if deleted
       setFormData(prev => ({
         ...prev,
         image: ''
@@ -41,28 +43,47 @@ export default function AddProduct() {
     }
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setIsLoading(true)
+    const toastId = toast.loading('Adding product...')
 
-    // In a real app, this would send data to an API
-    setTimeout(() => {
-      setIsLoading(false)
-      setMessage({
-        type: 'success',
-        text: 'Product added successfully! (Note: This is just a simulation, no actual data is being saved in this demo)'
+    try {
+      const response = await fetch('/api/products', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData)
       })
 
-      // Clear form after success
-      if (message.type === 'success') {
-        setFormData({
-          title: '',
-          price: '',
-          description: '',
-          image: ''
-        })
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Error creating product')
       }
-    }, 1000)
+
+      toast.success('Product added successfully!', { id: toastId })
+
+      // Clear form after success
+      setFormData({
+        title: '',
+        price: '',
+        description: '',
+        image: ''
+      })
+
+      // Redirect to products page after a short delay
+      setTimeout(() => {
+        router.push('/admin/products')
+      }, 1000)
+
+    } catch (error) {
+      console.error('Error:', error)
+      toast.error(error.message, { id: toastId })
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -79,73 +100,67 @@ export default function AddProduct() {
         </Link>
       </div>
 
-      {message.text && (
-        <div className={`mb-6 p-4 border ${message.type === 'success' ? 'border-green-200 bg-green-50 text-green-800' : 'border-red-200 bg-red-50 text-red-800'}`}>
-          {message.text}
-        </div>
-      )}
-
       <div className="bg-white border border-gray-100 p-6">
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Product Image
+            </label>
+            <ImageUpload
+              initialImage={formData.image}
+              onChange={handleImageChange}
+            />
+          </div>
+
+          <div className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Product Image
+              <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
+                Product Name
               </label>
-              <ImageUpload
-                initialImage={formData.image}
-                onChange={handleImageChange}
+              <input
+                type="text"
+                id="title"
+                name="title"
+                value={formData.title}
+                onChange={handleChange}
+                className="w-full border border-gray-300 px-3 py-2 focus:outline-none focus:border-black"
+                required
+                placeholder="e.g. Lavender Floor Cleaner"
               />
             </div>
 
-            <div className="space-y-6">
-              <div>
-                <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
-                  Product Name
-                </label>
-                <input
-                  type="text"
-                  id="title"
-                  name="title"
-                  value={formData.title}
-                  onChange={handleChange}
-                  className="w-full border border-gray-300 px-3 py-2 focus:outline-none focus:border-black"
-                  required
-                  placeholder="e.g. Lavender Floor Cleaner"
-                />
-              </div>
+            <div>
+              <label htmlFor="price" className="block text-sm font-medium text-gray-700 mb-1">
+                Price ($)
+              </label>
+              <input
+                type="number"
+                id="price"
+                name="price"
+                value={formData.price}
+                onChange={handleChange}
+                className="w-full border border-gray-300 px-3 py-2 focus:outline-none focus:border-black"
+                required
+                placeholder="e.g. 30"
+                min="0"
+                step="0.01"
+              />
+            </div>
 
-              <div>
-                <label htmlFor="price" className="block text-sm font-medium text-gray-700 mb-1">
-                  Price ($)
-                </label>
-                <input
-                  type="text"
-                  id="price"
-                  name="price"
-                  value={formData.price}
-                  onChange={handleChange}
-                  className="w-full border border-gray-300 px-3 py-2 focus:outline-none focus:border-black"
-                  required
-                  placeholder="e.g. 30"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
-                  Description
-                </label>
-                <textarea
-                  id="description"
-                  name="description"
-                  value={formData.description}
-                  onChange={handleChange}
-                  rows={5}
-                  className="w-full border border-gray-300 px-3 py-2 focus:outline-none focus:border-black"
-                  required
-                  placeholder="Enter product description..."
-                />
-              </div>
+            <div>
+              <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
+                Description
+              </label>
+              <textarea
+                id="description"
+                name="description"
+                value={formData.description}
+                onChange={handleChange}
+                rows={5}
+                className="w-full border border-gray-300 px-3 py-2 focus:outline-none focus:border-black"
+                required
+                placeholder="Enter product description..."
+              />
             </div>
           </div>
 

@@ -1,41 +1,57 @@
-import React from 'react'
-import Image from 'next/image'
+'use client'
+
+import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { toast } from 'sonner'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import Newsletter from '../components/Newsletter'
-import { products } from '../data/products'
 
-export const metadata = {
-  title: 'Products | Mercy Peter Detergents',
-  description: 'Explore our full line of powerful, mess-free detergents designed for everyday use.',
-}
+// Product Skeleton Component
+const ProductSkeleton = () => (
+  <div className="animate-pulse">
+    <div className="bg-gray-200 border-[#9B9B9B] border p-4 mb-6 h-[450px]" />
+    <div className="h-5 bg-gray-200 rounded w-2/3 mb-1" />
+    <div className="h-5 bg-gray-200 rounded w-1/4" />
+  </div>
+)
 
-// Product Card Component
-const ProductCard = ({ id, image, title, price }) => {
-  return (
-    <Link href={`/products/${id}`} className="w-full block group transition-transform hover:-translate-y-1">
-      <div className="bg-[#F4F4F4] border-[#9B9B9B] border p-4 mb-6 h-[450px] flex items-center justify-center">
-        <Image
-          src={image}
-          alt={title}
-          width={240}
-          height={240}
-          className="object-contain transition-transform group-hover:scale-105"
-        />
-      </div>
-      <h3 className="text-lg font-medium mb-1">{title}</h3>
-      <p className="text-lg text-gray-500">${price}</p>
-    </Link>
-  )
-}
+export default function Products() {
+  const [products, setProducts] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
+  const supabase = createClientComponentClient()
 
-export default function ProductsPage() {
+  useEffect(() => {
+    fetchProducts()
+  }, [])
+
+  const fetchProducts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .order('created_at', { ascending: false })
+
+      if (error) {
+        throw error
+      }
+
+      setProducts(data || [])
+    } catch (error) {
+      console.error('Error fetching products:', error)
+      toast.error('Failed to load products')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   return (
     <div className="pt-[80px]">
       <Navbar />
 
-      {/* Hero Section */}
+      {/* Hero Section - Always visible */}
       <div
         className="relative w-full h-[500px] flex items-center"
         style={{
@@ -54,11 +70,9 @@ export default function ProductsPage() {
       </div>
 
       {/* Products Grid */}
-
-
       <div className="py-20">
         <div className="container mx-auto px-4">
-            <div className='mb-16 flex justify-between items-center'>
+          <div className='mb-16 flex justify-between items-center'>
             <p className='text-[22px] md:text-[32px] font-antonio font-bold'>Our Products</p>
 
             <div className="relative">
@@ -73,18 +87,47 @@ export default function ProductsPage() {
                 </svg>
               </div>
             </div>
+          </div>
 
-            </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {products.map((product) => (
-              <ProductCard
-                key={product.id}
-                id={product.id}
-                image={product.image}
-                title={product.title}
-                price={product.price}
-              />
-            ))}
+            {isLoading ? (
+              // Show skeletons while loading
+              Array(6).fill(0).map((_, index) => (
+                <div key={index} className="w-full block">
+                  <ProductSkeleton />
+                </div>
+              ))
+            ) : products.length === 0 ? (
+              <div className="col-span-full text-center py-8">
+                <p className="text-gray-500">No products available.</p>
+              </div>
+            ) : (
+              products.map((product) => (
+                <Link
+                  key={product.id}
+                  href={`/products/${product.id}`}
+                  className="w-full block group transition-transform hover:-translate-y-1"
+                >
+                  <div className="bg-[#F4F4F4] border-[#9B9B9B] border p-4 mb-6 h-[450px] flex items-center justify-center">
+                    {product.image_url ? (
+                      <Image
+                        src={product.image_url}
+                        alt={product.title}
+                        width={240}
+                        height={240}
+                        className="object-contain transition-transform group-hover:scale-105"
+                      />
+                    ) : (
+                      <span className="material-icons-outlined text-6xl text-gray-400">
+                        image
+                      </span>
+                    )}
+                  </div>
+                  <h3 className="text-lg font-medium mb-1">{product.title}</h3>
+                  <p className="text-lg text-gray-500">${product.price.toFixed(2)}</p>
+                </Link>
+              ))
+            )}
           </div>
         </div>
       </div>
