@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { toast } from 'sonner'
 import Navbar from '../../components/Navbar'
@@ -80,6 +81,7 @@ const RelatedProductCard = ({ product }) => (
 )
 
 export default function ProductDetail({ params }) {
+  const router = useRouter()
   const [product, setProduct] = useState(null)
   const [relatedProducts, setRelatedProducts] = useState([])
   const [isLoading, setIsLoading] = useState(true)
@@ -132,6 +134,26 @@ export default function ProductDetail({ params }) {
 
   const decreaseQuantity = () => {
     setQuantity(prev => prev > 1 ? prev - 1 : 1)
+  }
+
+  const handleCheckout = () => {
+    // Create checkout data with product and quantity
+    const checkoutData = {
+      product: {
+        id: product.id,
+        title: product.title,
+        price: product.price,
+        image: product.image_url
+      },
+      quantity: quantity,
+      totalPrice: (product.price * quantity).toFixed(2)
+    }
+
+    // Store checkout data in sessionStorage (not localStorage)
+    sessionStorage.setItem('checkoutData', JSON.stringify(checkoutData))
+
+    // Navigate to checkout page
+    router.push('/checkout')
   }
 
   return (
@@ -216,8 +238,11 @@ export default function ProductDetail({ params }) {
                         </div>
                       </div>
 
-                      <button className="w-full bg-black cursor-pointer text-white py-4 rounded-full hover:bg-gray-800 transition-colors">
-                        Buy products
+                      <button
+                        onClick={handleCheckout}
+                        className="w-full bg-black cursor-pointer text-white py-4 rounded-full hover:bg-gray-800 transition-colors"
+                      >
+                        Buy product
                       </button>
 
                       <p className="text-gray-600 text-sm mt-4 md:text-left text-center">
