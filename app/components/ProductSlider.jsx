@@ -71,7 +71,7 @@ const ProductSlider = () => {
     if (!sliderRef.current) return
 
     const { scrollLeft, scrollWidth, clientWidth } = sliderRef.current
-
+ 
     // Update navigation buttons states
     setCanScrollLeft(scrollLeft > 0)
     setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 5) // 5px buffer to account for rounding
