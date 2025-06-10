@@ -8,7 +8,7 @@ import { toast } from 'sonner'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import AdminLayout from '../../../components/AdminLayout'
 
-export default function ViewProduct({ params }) {
+export default function  ({ params }) {
   const router = useRouter()
   const supabase = createClientComponentClient()
   const unwrappedParams = React.use(params)

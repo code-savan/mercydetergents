@@ -4,18 +4,24 @@ import React, { useState, useRef, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { ArrowLeft, ArrowRight } from 'lucide-react'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { toast } from 'sonner'
 
 const ProductCard = ({ id, image, title, price }) => {
   return (
     <Link href={`/products/${id}`} className="min-w-[280px] flex-shrink-0 mr-4 block group transition-transform hover:-translate-y-1">
       <div className="bg-[#F4F4F4] border-[#9B9B9B] border p-4 mb-6 h-[450px] flex items-center justify-center">
-        <Image
-          src={image}
-          alt={title}
-          width={240}
-          height={240}
-          className="object-contain transition-transform group-hover:scale-105"
-        />
+        {image ? (
+          <Image
+            src={image}
+            alt={title}
+            width={240}
+            height={240}
+            className="object-contain transition-transform group-hover:scale-105"
+          />
+        ) : (
+          <span className="material-icons-outlined text-6xl text-gray-400">image</span>
+        )}
       </div>
       <h3 className="text-lg font-medium mb-1">{title}</h3>
       <p className="text-lg text-gray-500">${price}</p>
@@ -23,26 +29,43 @@ const ProductCard = ({ id, image, title, price }) => {
   )
 }
 
+const ProductSliderSkeleton = () => (
+  <div className="min-w-[280px] flex-shrink-0 mr-4 block animate-pulse">
+    <div className="bg-gray-200 border-[#9B9B9B] border p-4 mb-6 h-[450px] flex items-center justify-center" />
+    <div className="h-5 bg-gray-200 rounded w-2/3 mb-1" />
+    <div className="h-5 bg-gray-200 rounded w-1/4" />
+  </div>
+)
+
 const ProductSlider = () => {
   const [canScrollLeft, setCanScrollLeft] = useState(false)
   const [canScrollRight, setCanScrollRight] = useState(true)
   const [progress, setProgress] = useState(0)
+  const [products, setProducts] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
   const sliderRef = useRef(null)
+  const supabase = createClientComponentClient()
 
-  const products = [
-    { id: '1', image: '/bucket1.png', title: 'Lavender Floor cleaner', price: '30' },
-    { id: '2', image: '/bucket2.png', title: 'Lime Floor cleaner', price: '30' },
-    { id: '3', image: '/bucket3.png', title: 'Laundry Detergent', price: '30' },
-    { id: '4', image: '/bucket4.png', title: 'Pods', price: '30' },
-    { id: '5', image: '/bucket5.png', title: 'Fabric Softener', price: '30' },
-    { id: '6', image: '/bucket6.png', title: 'Multi-Surface Cleaner', price: '30' },
-    { id: '7', image: '/bucket7.png', title: 'Dish Soap', price: '30' },
-    { id: '8', image: '/bucket8.png', title: 'Stain Remover', price: '30' },
-    { id: '9', image: '/bucket9.png', title: 'Bathroom Cleaner', price: '30' },
-    { id: '10', image: '/bucket10.png', title: 'Glass Cleaner', price: '30' },
-    { id: '11', image: '/bucket11.png', title: 'Carpet Cleaner', price: '30' },
-    { id: '12', image: '/bucket12.png', title: 'Disinfectant Spray', price: '30' },
-  ]
+  useEffect(() => {
+    fetchProducts()
+    // eslint-disable-next-line
+  }, [])
+
+  const fetchProducts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .order('created_at', { ascending: false })
+      if (error) throw error
+      setProducts(data || [])
+    } catch (error) {
+      console.error('Error fetching products:', error)
+      toast.error('Failed to load products')
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   const updateScrollState = () => {
     if (!sliderRef.current) return
@@ -128,15 +151,17 @@ const ProductSlider = () => {
           style={{scrollbarWidth: 'none', msOverflowStyle: 'none'}}
         >
           <div className="flex">
-            {products.map((product) => (
-              <ProductCard
-                key={product.id}
-                id={product.id}
-                image={product.image}
-                title={product.title}
-                price={product.price}
-              />
-            ))}
+            {isLoading
+              ? Array(6).fill(0).map((_, idx) => <ProductSliderSkeleton key={idx} />)
+              : products.map((product) => (
+                  <ProductCard
+                    key={product.id}
+                    id={product.id}
+                    image={product.image_url}
+                    title={product.title}
+                    price={product.price?.toFixed ? product.price.toFixed(2) : product.price}
+                  />
+                ))}
           </div>
         </div>
 
