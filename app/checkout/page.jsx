@@ -85,13 +85,16 @@ export default function CheckoutPage() {
 
     try {
       // Prepare Stripe line_items
+      const imageUrl = checkoutData.product.image.startsWith('http')
+        ? checkoutData.product.image
+        : `${process.env.NEXT_PUBLIC_BASE_URL}${checkoutData.product.image}`
       const line_items = [
         {
           price_data: {
             currency: 'usd',
             product_data: {
               name: checkoutData.product.title,
-              images: [checkoutData.product.image],
+              images: [imageUrl],
             },
             unit_amount: Math.round(Number(checkoutData.product.price) * 100),
           },

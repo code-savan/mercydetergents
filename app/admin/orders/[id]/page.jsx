@@ -1,134 +1,33 @@
 'use client'
 
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import AdminLayout from '../../components/AdminLayout'
-
-// Demo orders data - same as in the orders page
-const demoOrders = [
-  {
-    id: 'ORD-2023-001',
-    customer: 'John Doe',
-    email: 'john.doe@example.com',
-    phone: '+234 803 123 4567',
-    date: '2023-11-15',
-    status: 'Delivered',
-    total: 89.97,
-    items: [
-      { id: 'PRD-001', name: 'Multi-Purpose Cleaner', price: 29.99, quantity: 1 },
-      { id: 'PRD-002', name: 'Dish Washing Liquid', price: 19.99, quantity: 2 },
-      { id: 'PRD-005', name: 'Fabric Softener', price: 19.99, quantity: 1 }
-    ],
-    shippingAddress: {
-      street: '15 Broad Street',
-      city: 'Lagos',
-      state: 'Lagos State',
-      zip: '100001',
-      country: 'Nigeria'
-    },
-    paymentMethod: 'Credit Card',
-    deliveryDate: '2023-11-18'
-  },
-  {
-    id: 'ORD-2023-002',
-    customer: 'Sarah Johnson',
-    email: 'sarah.j@example.com',
-    phone: '+234 705 987 6543',
-    date: '2023-11-14',
-    status: 'Processing',
-    total: 45.50,
-    items: [
-      { id: 'PRD-003', name: 'Laundry Detergent', price: 25.50, quantity: 1 },
-      { id: 'PRD-004', name: 'Glass Cleaner', price: 20.00, quantity: 1 }
-    ],
-    shippingAddress: {
-      street: '7 Marina Road',
-      city: 'Lagos',
-      state: 'Lagos State',
-      zip: '100001',
-      country: 'Nigeria'
-    },
-    paymentMethod: 'Bank Transfer',
-    deliveryDate: 'Pending'
-  },
-  {
-    id: 'ORD-2023-003',
-    customer: 'Michael Williams',
-    email: 'mwilliams@example.com',
-    phone: '+234 815 555 1234',
-    date: '2023-11-10',
-    status: 'Delivered',
-    total: 134.25,
-    items: [
-      { id: 'PRD-001', name: 'Multi-Purpose Cleaner', price: 29.99, quantity: 2 },
-      { id: 'PRD-002', name: 'Dish Washing Liquid', price: 19.99, quantity: 1 },
-      { id: 'PRD-003', name: 'Laundry Detergent', price: 25.50, quantity: 1 },
-      { id: 'PRD-006', name: 'Toilet Cleaner', price: 18.99, quantity: 1 },
-      { id: 'PRD-004', name: 'Glass Cleaner', price: 20.00, quantity: 1 }
-    ],
-    shippingAddress: {
-      street: '25 Awolowo Avenue',
-      city: 'Ibadan',
-      state: 'Oyo State',
-      zip: '200001',
-      country: 'Nigeria'
-    },
-    paymentMethod: 'Debit Card',
-    deliveryDate: '2023-11-14'
-  },
-  {
-    id: 'ORD-2023-004',
-    customer: 'Emma Brown',
-    email: 'emma.b@example.com',
-    phone: '+234 902 111 2222',
-    date: '2023-11-08',
-    status: 'Cancelled',
-    total: 29.99,
-    items: [
-      { id: 'PRD-001', name: 'Multi-Purpose Cleaner', price: 29.99, quantity: 1 }
-    ],
-    shippingAddress: {
-      street: '12 Nnamdi Azikiwe Street',
-      city: 'Port Harcourt',
-      state: 'Rivers State',
-      zip: '500001',
-      country: 'Nigeria'
-    },
-    paymentMethod: 'Credit Card',
-    deliveryDate: 'Cancelled'
-  },
-  {
-    id: 'ORD-2023-005',
-    customer: 'David Miller',
-    email: 'david.m@example.com',
-    phone: '+234 708 333 4444',
-    date: '2023-11-05',
-    status: 'Delivered',
-    total: 159.85,
-    items: [
-      { id: 'PRD-003', name: 'Laundry Detergent', price: 25.50, quantity: 2 },
-      { id: 'PRD-005', name: 'Fabric Softener', price: 19.99, quantity: 3 },
-      { id: 'PRD-006', name: 'Toilet Cleaner', price: 18.99, quantity: 1 },
-      { id: 'PRD-007', name: 'Air Freshener', price: 15.95, quantity: 2 }
-    ],
-    shippingAddress: {
-      street: '5 Akin Adesola Street',
-      city: 'Abuja',
-      state: 'FCT',
-      zip: '900001',
-      country: 'Nigeria'
-    },
-    paymentMethod: 'Bank Transfer',
-    deliveryDate: '2023-11-09'
-  }
-]
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 
 export default function OrderDetail() {
   const params = useParams()
   const orderId = params.id
+  const [order, setOrder] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const supabase = createClientComponentClient()
 
-  const order = demoOrders.find(o => o.id === orderId) || demoOrders[0]
+  useEffect(() => {
+    if (!orderId) return;
+    console.log('OrderDetail: orderId param:', orderId)
+    const fetchOrder = async () => {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*, customer:customer_id (full_name, email, phone, address, city, state, zip), product:product_id (title, price)')
+        .eq('id', orderId)
+        .single()
+      console.log('OrderDetail: fetchOrder result:', { data, error })
+      setOrder(data)
+      setLoading(false)
+    }
+    fetchOrder()
+  }, [orderId])
 
   const getStatusClass = (status) => {
     switch (status) {
@@ -138,27 +37,39 @@ export default function OrderDetail() {
         return 'bg-blue-100 text-blue-800'
       case 'Cancelled':
         return 'bg-red-100 text-red-800'
+      case 'paid':
+        return 'bg-green-100 text-green-800'
       default:
         return 'bg-gray-100 text-gray-800'
     }
   }
 
-  return (
-    <AdminLayout title={`Order ${order.id}`}>
-      {/* Notification Banner */}
-      <div className="mb-6 bg-yellow-50 border-l-4 border-yellow-400 p-4">
-        <div className="flex items-start">
-          <div className="flex-shrink-0">
-            <span className="material-icons-outlined text-yellow-400">info</span>
-          </div>
-          <div className="ml-3">
-            <p className="text-sm text-yellow-700">
-              The content below is for presentation purposes only and will become live when confidential credentials are handed over to the developer.
-            </p>
-          </div>
-        </div>
-      </div>
+  // Export order as JSON
+  const handleExport = () => {
+    if (!order) return;
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(order, null, 2));
+    const downloadAnchorNode = document.createElement('a');
+    downloadAnchorNode.setAttribute("href", dataStr);
+    downloadAnchorNode.setAttribute("download", `order-${order.id}.json`);
+    document.body.appendChild(downloadAnchorNode);
+    downloadAnchorNode.click();
+    downloadAnchorNode.remove();
+  }
 
+  // Print order
+  const handlePrint = () => {
+    window.print();
+  }
+
+  if (loading) {
+    return <AdminLayout title="Order Details"><div className="p-8 text-center text-gray-400">Loading...</div></AdminLayout>
+  }
+  if (!order) {
+    return <AdminLayout title="Order Details"><div className="p-8 text-center text-gray-400">Order not found.</div></AdminLayout>
+  }
+
+  return (
+    <AdminLayout title={`Order MP-${order.id}`}>
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center gap-4">
           <Link
@@ -169,15 +80,15 @@ export default function OrderDetail() {
           </Link>
           <h2 className="text-xl font-medium">Order Details</h2>
           <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusClass(order.status)}`}>
-            {order.status}
+            {order.status || 'N/A'}
           </span>
         </div>
         <div className="flex gap-2">
-          <button className="bg-white border border-gray-300 px-4 py-2 hover:bg-gray-50 transition-colors flex items-center text-sm">
+          <button onClick={handlePrint} className="bg-white border border-gray-300 px-4 py-2 hover:bg-gray-50 transition-colors flex items-center text-sm">
             <span className="material-icons-outlined mr-1" style={{ fontSize: '18px' }}>print</span>
             Print
           </button>
-          <button className="bg-white border border-gray-300 px-4 py-2 hover:bg-gray-50 transition-colors flex items-center text-sm">
+          <button onClick={handleExport} className="bg-white border border-gray-300 px-4 py-2 hover:bg-gray-50 transition-colors flex items-center text-sm">
             <span className="material-icons-outlined mr-1" style={{ fontSize: '18px' }}>file_download</span>
             Export
           </button>
@@ -186,7 +97,7 @@ export default function OrderDetail() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Order Summary */}
-        <div className="lg:col-span-2">
+        <div className="col-span-3">
           <div className="bg-white border border-gray-100 overflow-hidden mb-6">
             <div className="px-6 py-4 border-b border-gray-100">
               <h3 className="font-medium">Order Summary</h3>
@@ -195,41 +106,37 @@ export default function OrderDetail() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div>
                   <p className="text-sm text-gray-500 mb-1">Order ID</p>
-                  <p className="font-medium">{order.id}</p>
+                  <p className="font-medium">MP-{order.id}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500 mb-1">Date Placed</p>
-                  <p className="font-medium">{order.date}</p>
+                  <p className="font-medium">{order.created_at ? new Date(order.created_at).toLocaleDateString() : ''}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500 mb-1">Customer</p>
-                  <p className="font-medium">{order.customer}</p>
+                  <p className="font-medium">{order.customer?.full_name || 'N/A'}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500 mb-1">Payment Method</p>
-                  <p className="font-medium">{order.paymentMethod}</p>
+                  <p className="font-medium">Credit Card</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500 mb-1">Email</p>
-                  <p className="font-medium">{order.email}</p>
+                  <p className="font-medium">{order.customer?.email || 'N/A'}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500 mb-1">Phone</p>
-                  <p className="font-medium">{order.phone}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500 mb-1">Delivery Date</p>
-                  <p className="font-medium">{order.deliveryDate}</p>
+                  <p className="font-medium">{order.customer?.phone || 'N/A'}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500 mb-1">Total</p>
-                  <p className="font-medium">${order.total.toFixed(2)}</p>
+                  <p className="font-medium">${order.total_amount?.toFixed(2) || '0.00'}</p>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Order Items */}
+          {/* Order Items (if you have an items table, otherwise show product and quantity) */}
           <div className="bg-white border border-gray-100 overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-100">
               <h3 className="font-medium">Items</h3>
@@ -253,22 +160,20 @@ export default function OrderDetail() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-100">
-                  {order.items.map((item) => (
-                    <tr key={item.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {item.name}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        ${item.price.toFixed(2)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {item.quantity}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
-                        ${(item.price * item.quantity).toFixed(2)}
-                      </td>
-                    </tr>
-                  ))}
+                  <tr>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      {order.product?.title || 'N/A'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      ${order.product?.price?.toFixed(2) || '0.00'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {order.quantity}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
+                      ${(order.product?.price && order.quantity) ? (order.product.price * order.quantity).toFixed(2) : '0.00'}
+                    </td>
+                  </tr>
                 </tbody>
                 <tfoot className="bg-gray-50">
                   <tr>
@@ -276,7 +181,7 @@ export default function OrderDetail() {
                       Total
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 text-right">
-                      ${order.total.toFixed(2)}
+                      ${order.total_amount?.toFixed(2) || '0.00'}
                     </td>
                   </tr>
                 </tfoot>
@@ -292,39 +197,15 @@ export default function OrderDetail() {
               <h3 className="font-medium">Shipping Address</h3>
             </div>
             <div className="p-6">
-              <p className="text-sm mb-1">{order.customer}</p>
-              <p className="text-sm mb-1">{order.shippingAddress.street}</p>
-              <p className="text-sm mb-1">{order.shippingAddress.city}, {order.shippingAddress.state}</p>
-              <p className="text-sm mb-1">{order.shippingAddress.zip}</p>
-              <p className="text-sm">{order.shippingAddress.country}</p>
+              {order.customer?.full_name && <p className="text-sm mb-1">{order.customer.full_name}</p>}
+              {order.customer?.address && <p className="text-sm mb-1">{order.customer.address}</p>}
+              {order.customer?.city && <p className="text-sm mb-1">{order.customer.city}{order.customer?.state ? `, ${order.customer.state}` : ''}</p>}
+              {order.customer?.zip && <p className="text-sm mb-1">{order.customer.zip}</p>}
+              {order.customer?.country && <p className="text-sm">{order.customer.country}</p>}
             </div>
           </div>
 
-          <div className="bg-white border border-gray-100 overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-100">
-              <h3 className="font-medium">Actions</h3>
-            </div>
-            <div className="p-6">
-              <div className="flex flex-col gap-2">
-                <button className="bg-black text-white px-4 py-2 hover:bg-gray-800 transition-colors flex items-center justify-center text-sm w-full">
-                  <span className="material-icons-outlined mr-1" style={{ fontSize: '18px' }}>mark_email_read</span>
-                  Send Invoice
-                </button>
-                {order.status === 'Processing' && (
-                  <button className="bg-green-600 text-white px-4 py-2 hover:bg-green-700 transition-colors flex items-center justify-center text-sm w-full">
-                    <span className="material-icons-outlined mr-1" style={{ fontSize: '18px' }}>local_shipping</span>
-                    Mark as Shipped
-                  </button>
-                )}
-                {order.status !== 'Cancelled' && order.status !== 'Delivered' && (
-                  <button className="bg-red-600 text-white px-4 py-2 hover:bg-red-700 transition-colors flex items-center justify-center text-sm w-full">
-                    <span className="material-icons-outlined mr-1" style={{ fontSize: '18px' }}>cancel</span>
-                    Cancel Order
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
+
         </div>
       </div>
     </AdminLayout>

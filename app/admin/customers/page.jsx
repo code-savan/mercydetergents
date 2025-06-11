@@ -1,86 +1,84 @@
 'use client'
 
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import AdminLayout from '../components/AdminLayout'
 import Link from 'next/link'
-
-// Demo customers data
-const demoCustomers = [
-  {
-    id: 'CUST-001',
-    name: 'John Doe',
-    email: 'john.doe@example.com',
-    phone: '+234 803 123 4567',
-    orders: 3,
-    totalSpent: 89.97,
-    dateJoined: '2023-10-15'
-  },
-  {
-    id: 'CUST-002',
-    name: 'Sarah Johnson',
-    email: 'sarah.j@example.com',
-    phone: '+234 705 987 6543',
-    orders: 1,
-    totalSpent: 45.50,
-    dateJoined: '2023-10-25'
-  },
-  {
-    id: 'CUST-003',
-    name: 'Michael Williams',
-    email: 'mwilliams@example.com',
-    phone: '+234 815 555 1234',
-    orders: 5,
-    totalSpent: 134.25,
-    dateJoined: '2023-09-05'
-  },
-  {
-    id: 'CUST-004',
-    name: 'Emma Brown',
-    email: 'emma.b@example.com',
-    phone: '+234 902 111 2222',
-    orders: 2,
-    totalSpent: 67.98,
-    dateJoined: '2023-10-08'
-  },
-  {
-    id: 'CUST-005',
-    name: 'David Miller',
-    email: 'david.m@example.com',
-    phone: '+234 708 333 4444',
-    orders: 4,
-    totalSpent: 159.85,
-    dateJoined: '2023-08-15'
-  },
-  {
-    id: 'CUST-006',
-    name: 'Olivia Wilson',
-    email: 'olivia.w@example.com',
-    phone: '+234 802 777 8888',
-    orders: 2,
-    totalSpent: 75.90,
-    dateJoined: '2023-10-30'
-  }
-]
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { formatRelativeDate } from '../../utils/formatDate'
 
 export default function CustomersAdmin() {
+  const [customers, setCustomers] = useState([])
+  const [loading, setLoading] = useState(true)
+  const supabase = createClientComponentClient()
+  const [showEmailModal, setShowEmailModal] = useState(false)
+  const [emailTo, setEmailTo] = useState('')
+  const [emailSubject, setEmailSubject] = useState('')
+  const [emailMessage, setEmailMessage] = useState('')
+  const [sending, setSending] = useState(false)
+
+  useEffect(() => {
+    const fetchCustomers = async () => {
+      // Fetch all customers
+      const { data: customersData, error: customersError } = await supabase
+        .from('customers')
+        .select('id, full_name, email, phone, created_at')
+        .order('created_at', { ascending: false })
+
+      // Fetch all orders
+      const { data: ordersData, error: ordersError } = await supabase
+        .from('orders')
+        .select('id, customer_id, total_amount')
+
+      // Aggregate orders for each customer
+      const customersWithStats = (customersData || []).map(c => {
+        const customerOrders = (ordersData || []).filter(o => o.customer_id === c.id)
+        return {
+          ...c,
+          ordersCount: customerOrders.length,
+          totalSpent: customerOrders.reduce((sum, o) => sum + (o.total_amount || 0), 0)
+        }
+      })
+
+      setCustomers(customersWithStats)
+      setLoading(false)
+    }
+    fetchCustomers()
+  }, [])
+
+  // Export all customers as JSON
+  const handleExport = () => {
+    if (!customers || customers.length === 0) return;
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(customers, null, 2));
+    const downloadAnchorNode = document.createElement('a');
+    downloadAnchorNode.setAttribute("href", dataStr);
+    downloadAnchorNode.setAttribute("download", `customers.json`);
+    document.body.appendChild(downloadAnchorNode);
+    downloadAnchorNode.click();
+    downloadAnchorNode.remove();
+  }
+
+  const handleOpenEmail = (customer) => {
+    setEmailTo(customer.email)
+    setEmailSubject('')
+    setEmailMessage('')
+    setShowEmailModal(true)
+  }
+
+  const handleSendEmail = async () => {
+    setSending(true)
+    // Simulate sending email (replace with real API call later)
+    console.log('Send email to:', emailTo, 'Subject:', emailSubject, 'Message:', emailMessage)
+    setTimeout(() => {
+      setSending(false)
+      setShowEmailModal(false)
+      alert('Email sent! (simulated)')
+    }, 1000)
+  }
+
   return (
     <AdminLayout title="Customers">
-      {/* Notification Banner */}
-      <div className="mb-6 bg-yellow-50 border-l-4 border-yellow-400 p-4">
-        <div className="flex items-start">
-          <div className="flex-shrink-0">
-            <span className="material-icons-outlined text-yellow-400">info</span>
-          </div>
-          <div className="ml-3">
-            <p className="text-sm text-yellow-700">
-              The content below is for presentation purposes only and will become live when confidential credentials are handed over to the developer.
-            </p>
-          </div>
-        </div>
-      </div>
-
       <div className="flex justify-between items-center mb-6">
-        <p className="text-sm text-gray-500">{demoCustomers.length} customers</p>
+        <p className="text-sm text-gray-500">{customers.length} customers</p>
         <div className="flex gap-2">
           <div className="relative">
             <input
@@ -90,7 +88,7 @@ export default function CustomersAdmin() {
             />
             <span className="material-icons-outlined absolute left-3 top-2 text-gray-400" style={{ fontSize: '18px' }}>search</span>
           </div>
-          <button className="bg-white border border-gray-300 px-4 py-2 hover:bg-gray-50 transition-colors flex items-center text-sm">
+          <button onClick={handleExport} className="bg-white border border-gray-300 px-4 py-2 hover:bg-gray-50 transition-colors flex items-center text-sm">
             <span className="material-icons-outlined mr-1" style={{ fontSize: '18px' }}>file_download</span>
             Export
           </button>
@@ -123,17 +121,21 @@ export default function CustomersAdmin() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-100">
-              {demoCustomers.map((customer) => (
+              {loading ? (
+                <tr><td colSpan={6} className="text-center py-8 text-gray-400">Loading customers...</td></tr>
+              ) : customers.length === 0 ? (
+                <tr><td colSpan={6} className="text-center py-8 text-gray-400">No customers found.</td></tr>
+              ) : customers.map((customer) => (
                 <tr key={customer.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <div className="flex-shrink-0 h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
                         <span className="text-gray-600 font-medium">
-                          {customer.name.split(' ').map(n => n[0]).join('')}
+                          {customer.full_name?.split(' ').map(n => n[0]).join('')}
                         </span>
                       </div>
                       <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900">{customer.name}</div>
+                        <div className="text-sm font-medium text-gray-900">{customer.full_name}</div>
                         <div className="text-sm text-gray-500">{customer.id}</div>
                       </div>
                     </div>
@@ -143,13 +145,13 @@ export default function CustomersAdmin() {
                     <div className="text-sm text-gray-500">{customer.phone}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {customer.orders}
+                    {customer.ordersCount}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     ${customer.totalSpent.toFixed(2)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {customer.dateJoined}
+                    {customer.created_at ? formatRelativeDate(customer.created_at) : ''}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
                     <Link
@@ -158,7 +160,7 @@ export default function CustomersAdmin() {
                     >
                       View
                     </Link>
-                    <button className="text-gray-600 hover:underline">
+                    <button className="text-gray-600 hover:underline" onClick={() => handleOpenEmail(customer)}>
                       Email
                     </button>
                   </td>
@@ -168,6 +170,32 @@ export default function CustomersAdmin() {
           </table>
         </div>
       </div>
+      {/* Email Modal */}
+      {showEmailModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+            <h3 className="text-lg font-medium mb-4">Email Customer</h3>
+            <div className="mb-3">
+              <label className="block text-sm text-gray-600 mb-1">To</label>
+              <input type="email" className="w-full border px-3 py-2 rounded" value={emailTo} disabled />
+            </div>
+            <div className="mb-3">
+              <label className="block text-sm text-gray-600 mb-1">Subject</label>
+              <input type="text" className="w-full border px-3 py-2 rounded" value={emailSubject} onChange={e => setEmailSubject(e.target.value)} />
+            </div>
+            <div className="mb-3">
+              <label className="block text-sm text-gray-600 mb-1">Message</label>
+              <textarea className="w-full border px-3 py-2 rounded min-h-[100px]" value={emailMessage} onChange={e => setEmailMessage(e.target.value)} />
+            </div>
+            <div className="flex justify-end gap-2 mt-4">
+              <button className="px-4 py-2 bg-gray-200 rounded" onClick={() => setShowEmailModal(false)} disabled={sending}>Cancel</button>
+              <button className="px-4 py-2 bg-black text-white rounded" onClick={handleSendEmail} disabled={sending || !emailSubject || !emailMessage}>
+                {sending ? 'Sending...' : 'Send Email'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AdminLayout>
   )
 }

@@ -1,12 +1,43 @@
 'use client'
 
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { CheckCircle } from 'lucide-react'
 import Navbar from '../../components/Navbar'
 import Footer from '../../components/Footer'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { useSearchParams } from 'next/navigation'
 
 export default function ConfirmationPage() {
+  const [order, setOrder] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const searchParams = useSearchParams()
+  const sessionId = searchParams.get('session_id')
+  const supabase = createClientComponentClient()
+
+  useEffect(() => {
+    const fetchOrder = async () => {
+      if (!sessionId) {
+        setError('No session ID provided.')
+        setLoading(false)
+        return
+      }
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('stripe_session_id', sessionId)
+        .single()
+      if (error || !data) {
+        setError('Order not found.')
+      } else {
+        setOrder(data)
+      }
+      setLoading(false)
+    }
+    fetchOrder()
+  }, [sessionId])
+
   return (
     <div className="pt-[80px]">
       <Navbar />
@@ -19,39 +50,47 @@ export default function ConfirmationPage() {
 
           <h1 className="text-4xl font-antonio mb-4">Thank You for Your Order!</h1>
 
-          <p className="text-lg mb-8">
-            Your order has been received and is being processed. You will receive a confirmation email shortly.
-          </p>
+          {loading ? (
+            <p className="text-lg mb-8">Loading your order details...</p>
+          ) : error ? (
+            <p className="text-lg text-red-500 mb-8">{error}</p>
+          ) : (
+            <>
+              <p className="text-lg mb-8">
+                Your order has been received and is being processed. You will receive a confirmation email shortly.
+              </p>
 
-          <div className="bg-[#F9F9F9] p-6 border border-gray-200 mb-8 text-left">
-            <h2 className="text-xl font-medium mb-4">Order Details</h2>
+              <div className="bg-[#F9F9F9] p-6 border border-gray-200 mb-8 text-left">
+                <h2 className="text-xl font-medium mb-4">Order Details</h2>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Order Number:</p>
-                <p className="font-medium">MP-{Math.floor(100000 + Math.random() * 900000)}</p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">Order Number:</p>
+                    <p className="font-medium">MP-{order.id}</p>
+                  </div>
+
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">Date:</p>
+                    <p className="font-medium">{new Date(order.created_at).toLocaleDateString()}</p>
+                  </div>
+
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">Payment Method:</p>
+                    <p className="font-medium">Credit Card</p>
+                  </div>
+
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">Shipping Method:</p>
+                    <p className="font-medium">Standard Shipping</p>
+                  </div>
+                </div>
               </div>
 
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Date:</p>
-                <p className="font-medium">{new Date().toLocaleDateString()}</p>
-              </div>
-
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Payment Method:</p>
-                <p className="font-medium">Credit Card</p>
-              </div>
-
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Shipping Method:</p>
-                <p className="font-medium">Standard Shipping</p>
-              </div>
-            </div>
-          </div>
-
-          <p className="text-gray-600 mb-8">
-            A receipt with order details has been sent to your email. If you have any questions about your order, please contact our customer service team.
-          </p>
+              <p className="text-gray-600 mb-8">
+                A receipt with order details has been sent to your email. If you have any questions about your order, please contact our customer service team.
+              </p>
+            </>
+          )}
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
