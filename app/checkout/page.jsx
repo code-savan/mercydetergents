@@ -22,6 +22,8 @@ export default function CheckoutPage() {
     country: 'Nigeria'
   })
   const [errors, setErrors] = useState({})
+  const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState(null)
 
   useEffect(() => {
     // Retrieve checkout data from sessionStorage
@@ -74,31 +76,56 @@ export default function CheckoutPage() {
     return Object.keys(newErrors).length === 0
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
+    setSubmitError(null)
 
-    if (validateForm()) {
-      // In a real app, this would trigger the payment gateway
-      // For this demo, we'll just simulate a payment process
+    if (!validateForm()) return
+    setSubmitting(true)
 
-      // Prepare order data that would be sent to a payment processor
-      const orderData = {
-        customer: formData,
-        order: checkoutData,
-        timestamp: new Date().toISOString()
+    try {
+      // Prepare Stripe line_items
+      const line_items = [
+        {
+          price_data: {
+            currency: 'usd',
+            product_data: {
+              name: checkoutData.product.title,
+              images: [checkoutData.product.image],
+            },
+            unit_amount: Math.round(Number(checkoutData.product.price) * 100),
+          },
+          quantity: checkoutData.quantity,
+        }
+      ]
+
+      // Prepare metadata for webhook
+      const metadata = {
+        product_id: checkoutData.product.id,
+        quantity: checkoutData.quantity.toString(),
+        total_price: checkoutData.totalPrice,
+        ...formData
       }
 
-      console.log('Order data ready for payment processing:', orderData)
+      // Call backend to create Stripe Checkout session
+      const res = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          line_items,
+          customer_email: formData.email,
+          metadata
+        })
+      })
 
-      // Simulate redirect to a payment gateway
-      // In reality, you would integrate with Stripe or LemonSqueezy here
-      alert('Redirecting to payment gateway...')
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to create payment session')
 
-      // For demo purposes only - in production you'd use the payment gateway's SDK
-      // This would be replaced with actual integration code
-      setTimeout(() => {
-        router.push('/checkout/confirmation')
-      }, 1500)
+      // Redirect to Stripe Checkout
+      window.location.href = data.url
+    } catch (err) {
+      setSubmitError(err.message)
+      setSubmitting(false)
     }
   }
 
@@ -205,6 +232,7 @@ export default function CheckoutPage() {
                         value={formData.fullName}
                         onChange={handleInputChange}
                         className={`w-full border ${errors.fullName ? 'border-red-500' : 'border-gray-300'} p-2 focus:outline-none focus:border-black`}
+                        disabled={submitting}
                       />
                       {errors.fullName && <p className="text-red-500 text-xs mt-1">{errors.fullName}</p>}
                     </div>
@@ -217,6 +245,7 @@ export default function CheckoutPage() {
                         value={formData.email}
                         onChange={handleInputChange}
                         className={`w-full border ${errors.email ? 'border-red-500' : 'border-gray-300'} p-2 focus:outline-none focus:border-black`}
+                        disabled={submitting}
                       />
                       {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
                     </div>
@@ -229,6 +258,7 @@ export default function CheckoutPage() {
                         value={formData.phone}
                         onChange={handleInputChange}
                         className={`w-full border ${errors.phone ? 'border-red-500' : 'border-gray-300'} p-2 focus:outline-none focus:border-black`}
+                        disabled={submitting}
                       />
                       {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
                     </div>
@@ -247,6 +277,7 @@ export default function CheckoutPage() {
                         value={formData.address}
                         onChange={handleInputChange}
                         className={`w-full border ${errors.address ? 'border-red-500' : 'border-gray-300'} p-2 focus:outline-none focus:border-black`}
+                        disabled={submitting}
                       />
                       {errors.address && <p className="text-red-500 text-xs mt-1">{errors.address}</p>}
                     </div>
@@ -259,6 +290,7 @@ export default function CheckoutPage() {
                         value={formData.city}
                         onChange={handleInputChange}
                         className={`w-full border ${errors.city ? 'border-red-500' : 'border-gray-300'} p-2 focus:outline-none focus:border-black`}
+                        disabled={submitting}
                       />
                       {errors.city && <p className="text-red-500 text-xs mt-1">{errors.city}</p>}
                     </div>
@@ -271,6 +303,7 @@ export default function CheckoutPage() {
                         value={formData.state}
                         onChange={handleInputChange}
                         className={`w-full border ${errors.state ? 'border-red-500' : 'border-gray-300'} p-2 focus:outline-none focus:border-black`}
+                        disabled={submitting}
                       />
                       {errors.state && <p className="text-red-500 text-xs mt-1">{errors.state}</p>}
                     </div>
@@ -283,6 +316,7 @@ export default function CheckoutPage() {
                         value={formData.zipCode}
                         onChange={handleInputChange}
                         className={`w-full border ${errors.zipCode ? 'border-red-500' : 'border-gray-300'} p-2 focus:outline-none focus:border-black`}
+                        disabled={submitting}
                       />
                       {errors.zipCode && <p className="text-red-500 text-xs mt-1">{errors.zipCode}</p>}
                     </div>
@@ -294,6 +328,7 @@ export default function CheckoutPage() {
                         value={formData.country}
                         onChange={handleInputChange}
                         className="w-full border border-gray-300 p-2 focus:outline-none focus:border-black"
+                        disabled={submitting}
                       >
                         <option value="Nigeria">Nigeria</option>
                         <option value="Ghana">Ghana</option>
@@ -314,9 +349,11 @@ export default function CheckoutPage() {
                   <button
                     type="submit"
                     className="bg-black text-white py-3 px-6 w-full focus:outline-none hover:bg-gray-800 transition-colors"
+                    disabled={submitting}
                   >
-                    Proceed to Payment - ${(parseFloat(checkoutData.totalPrice) + 10).toFixed(2)}
+                    {submitting ? 'Redirecting to Payment...' : `Proceed to Payment - $${(parseFloat(checkoutData.totalPrice) + 10).toFixed(2)}`}
                   </button>
+                  {submitError && <p className="text-red-500 text-sm mt-2">{submitError}</p>}
 
                   <p className="text-sm text-gray-600 mt-4">
                     Your payment will be processed securely. We do not store any payment information.
