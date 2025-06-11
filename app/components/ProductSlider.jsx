@@ -6,26 +6,40 @@ import Link from 'next/link'
 import { ArrowLeft, ArrowRight } from 'lucide-react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { toast } from 'sonner'
+import { useCart } from '../context/CartContext'
 
-const ProductCard = ({ id, image, title, price }) => {
+const ProductCard = ({ id, image, title, price, product }) => {
+  const { addToCart } = useCart()
   return (
-    <Link href={`/products/${id}`} className="min-w-[280px] flex-shrink-0 mr-4 block group transition-transform hover:-translate-y-1">
-      <div className="bg-[#F4F4F4] border-[#9B9B9B] border p-4 mb-6 h-[450px] flex items-center justify-center">
-        {image ? (
-          <Image
-            src={image}
-            alt={title}
-            width={240}
-            height={240}
-            className="object-contain transition-transform group-hover:scale-105"
-          />
-        ) : (
-          <span className="material-icons-outlined text-6xl text-gray-400">image</span>
-        )}
-      </div>
-      <h3 className="text-lg font-medium mb-1">{title}</h3>
-      <p className="text-lg text-gray-500">${price}</p>
-    </Link>
+    <div className="min-w-[280px] flex-shrink-0 mr-4 block group transition-transform hover:-translate-y-1">
+      <Link href={`/products/${id}`} className="block">
+        <div className="bg-[#F4F4F4] border-[#9B9B9B] border p-4 mb-6 h-[450px] flex items-center justify-center">
+          {image ? (
+            <Image
+              src={image}
+              alt={title}
+              width={240}
+              height={240}
+              className="object-contain transition-transform group-hover:scale-105"
+            />
+          ) : (
+            <span className="material-icons-outlined text-6xl text-gray-400">image</span>
+          )}
+        </div>
+        <h3 className="text-lg font-medium mb-1">{title}</h3>
+        <p className="text-lg text-gray-500">${price}</p>
+      </Link>
+      <button
+        className="mt-2 w-full bg-black text-white py-2 rounded hover:bg-gray-800 transition-colors"
+        onClick={(e) => {
+          e.preventDefault();
+          addToCart(product, 1);
+          toast.success('Added to cart!')
+        }}
+      >
+        Add to Cart
+      </button>
+    </div>
   )
 }
 
@@ -71,7 +85,7 @@ const ProductSlider = () => {
     if (!sliderRef.current) return
 
     const { scrollLeft, scrollWidth, clientWidth } = sliderRef.current
- 
+
     // Update navigation buttons states
     setCanScrollLeft(scrollLeft > 0)
     setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 5) // 5px buffer to account for rounding
@@ -160,6 +174,7 @@ const ProductSlider = () => {
                     image={product.image_url}
                     title={product.title}
                     price={product.price?.toFixed ? product.price.toFixed(2) : product.price}
+                    product={product}
                   />
                 ))}
           </div>

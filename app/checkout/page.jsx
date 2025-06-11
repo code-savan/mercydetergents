@@ -6,10 +6,11 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
+import { useCart } from '../context/CartContext'
 
 export default function CheckoutPage() {
   const router = useRouter()
-  const [checkoutData, setCheckoutData] = useState(null)
+  const [checkoutCart, setCheckoutCart] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [formData, setFormData] = useState({
     fullName: '',
@@ -24,20 +25,18 @@ export default function CheckoutPage() {
   const [errors, setErrors] = useState({})
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState(null)
+  const { clearCart } = useCart()
 
   useEffect(() => {
-    // Retrieve checkout data from sessionStorage
-    const storedData = typeof window !== 'undefined' ? sessionStorage.getItem('checkoutData') : null
-
-    if (storedData) {
+    // Retrieve cart from sessionStorage
+    const storedCart = typeof window !== 'undefined' ? sessionStorage.getItem('checkoutCart') : null
+    if (storedCart) {
       try {
-        const parsedData = JSON.parse(storedData)
-        setCheckoutData(parsedData)
+        setCheckoutCart(JSON.parse(storedCart))
       } catch (error) {
-        console.error('Failed to parse checkout data:', error)
+        console.error('Failed to parse checkout cart:', error)
       }
     }
-
     setIsLoading(false)
   }, [])
 
@@ -76,40 +75,40 @@ export default function CheckoutPage() {
     return Object.keys(newErrors).length === 0
   }
 
+  const subtotal = checkoutCart.reduce((sum, item) => sum + item.price * item.quantity, 0)
+  const shipping = checkoutCart.length > 0 ? 10 : 0
+  const total = subtotal + shipping
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setSubmitError(null)
-
     if (!validateForm()) return
     setSubmitting(true)
-
     try {
-      // Prepare Stripe line_items
-      const imageUrl = checkoutData.product.image.startsWith('http')
-        ? checkoutData.product.image
-        : `${process.env.NEXT_PUBLIC_BASE_URL}${checkoutData.product.image}`
-      const line_items = [
-        {
+      // Prepare Stripe line_items for all cart items
+      const line_items = checkoutCart.map(item => {
+        const imageUrl = item.image_url && item.image_url.startsWith('http')
+          ? item.image_url
+          : `${process.env.NEXT_PUBLIC_BASE_URL}${item.image_url}`
+        return {
           price_data: {
             currency: 'usd',
             product_data: {
-              name: checkoutData.product.title,
+              name: item.title,
               images: [imageUrl],
             },
-            unit_amount: Math.round(Number(checkoutData.product.price) * 100),
+            unit_amount: Math.round(Number(item.price) * 100),
           },
-          quantity: checkoutData.quantity,
+          quantity: item.quantity,
         }
-      ]
-
-      // Prepare metadata for webhook
+      })
+      // Prepare metadata for webhook (send as JSON string)
       const metadata = {
-        product_id: checkoutData.product.id,
-        quantity: checkoutData.quantity.toString(),
-        total_price: checkoutData.totalPrice,
+        // cart: JSON.stringify(checkoutCart),
+        product_ids: checkoutCart.map(item => item.id).join(','),
+  quantities: checkoutCart.map(item => item.quantity).join(','),
         ...formData
       }
-
       // Call backend to create Stripe Checkout session
       const res = await fetch('/api/checkout', {
         method: 'POST',
@@ -120,10 +119,13 @@ export default function CheckoutPage() {
           metadata
         })
       })
-
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Failed to create payment session')
-
+      // Clear cart after successful checkout
+      clearCart()
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem('checkoutCart')
+      }
       // Redirect to Stripe Checkout
       window.location.href = data.url
     } catch (err) {
@@ -144,7 +146,7 @@ export default function CheckoutPage() {
     )
   }
 
-  if (!checkoutData) {
+  if (!checkoutCart || checkoutCart.length === 0) {
     return (
       <div className="pt-[80px] min-h-screen">
         <Navbar />
@@ -166,59 +168,55 @@ export default function CheckoutPage() {
   return (
     <div className="pt-[80px]">
       <Navbar />
-
       <div className="container mx-auto px-4 py-12">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-antonio">Checkout</h1>
           <Link
-            href={`/products/${checkoutData.product.id}`}
+            href="/cart"
             className="text-sm text-gray-600 hover:text-black transition-colors"
           >
-            ← Back to product
+            ← Back to cart
           </Link>
         </div>
-
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Order Summary */}
           <div className="lg:col-span-1 order-2 lg:order-1">
             <div className="bg-[#F9F9F9] p-6 border border-gray-200">
               <h2 className="text-xl font-medium mb-4">Order Summary</h2>
-
-              <div className="flex items-start gap-4 mb-6 pb-6 border-b border-gray-200">
-                <div className="bg-[#F4F4F4] p-2 border border-gray-200 w-20 h-20 flex items-center justify-center">
-                  <Image
-                    src={checkoutData.product.image}
-                    alt={checkoutData.product.title}
-                    width={60}
-                    height={60}
-                    className="object-contain"
-                  />
+              {checkoutCart.map(item => (
+                <div key={item.id} className="flex items-start gap-4 mb-6 pb-6 border-b border-gray-200">
+                  <div className="bg-[#F4F4F4] p-2 border border-gray-200 w-20 h-20 flex items-center justify-center">
+                    <Image
+                      src={item.image_url}
+                      alt={item.title}
+                      width={60}
+                      height={60}
+                      className="object-contain"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-medium">{item.title}</h3>
+                    <p className="text-gray-500 text-sm">Quantity: {item.quantity}</p>
+                    <p className="font-medium">${item.price} each</p>
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <h3 className="font-medium">{checkoutData.product.title}</h3>
-                  <p className="text-gray-500 text-sm">Quantity: {checkoutData.quantity}</p>
-                  <p className="font-medium">${checkoutData.product.price} each</p>
-                </div>
-              </div>
-
+              ))}
               <div className="space-y-2 pb-6 border-b border-gray-200">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Subtotal</span>
-                  <span>${checkoutData.totalPrice}</span>
+                  <span>${subtotal.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Shipping</span>
-                  <span>$10.00</span>
+                  <span>${shipping.toFixed(2)}</span>
                 </div>
               </div>
-
               <div className="flex justify-between pt-4 font-medium">
                 <span>Total</span>
-                <span>${(parseFloat(checkoutData.totalPrice) + 10).toFixed(2)}</span>
+                <span>${total.toFixed(2)}</span>
               </div>
             </div>
           </div>
-
           {/* Checkout Form */}
           <div className="lg:col-span-2 order-1 lg:order-2">
             <form onSubmit={handleSubmit}>
@@ -348,16 +346,14 @@ export default function CheckoutPage() {
                   <p className="text-gray-600 mb-4">
                     Click the button below to proceed to our secure payment platform.
                   </p>
-
                   <button
                     type="submit"
                     className="bg-black text-white py-3 px-6 w-full focus:outline-none hover:bg-gray-800 transition-colors"
                     disabled={submitting}
                   >
-                    {submitting ? 'Redirecting to Payment...' : `Proceed to Payment - $${(parseFloat(checkoutData.totalPrice) + 10).toFixed(2)}`}
+                    {submitting ? 'Redirecting to Payment...' : `Proceed to Payment - $${total.toFixed(2)}`}
                   </button>
                   {submitError && <p className="text-red-500 text-sm mt-2">{submitError}</p>}
-
                   <p className="text-sm text-gray-600 mt-4">
                     Your payment will be processed securely. We do not store any payment information.
                   </p>
@@ -367,7 +363,6 @@ export default function CheckoutPage() {
           </div>
         </div>
       </div>
-
       <Footer />
     </div>
   )

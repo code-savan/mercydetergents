@@ -8,6 +8,7 @@ import { toast } from 'sonner'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import Newsletter from '../components/Newsletter'
+import { useCart } from '../context/CartContext'
 
 // Product Skeleton Component
 const ProductSkeleton = () => (
@@ -22,6 +23,7 @@ export default function Products() {
   const [products, setProducts] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const supabase = createClientComponentClient()
+  const { addToCart } = useCart()
 
   useEffect(() => {
     fetchProducts()
@@ -103,29 +105,40 @@ export default function Products() {
               </div>
             ) : (
               products.map((product) => (
-                <Link
-                  key={product.id}
-                  href={`/products/${product.id}`}
-                  className="w-full block group transition-transform hover:-translate-y-1"
-                >
-                  <div className="bg-[#F4F4F4] border-[#9B9B9B] border p-4 mb-6 h-[450px] flex items-center justify-center">
-                    {product.image_url ? (
-                      <Image
-                        src={product.image_url}
-                        alt={product.title}
-                        width={240}
-                        height={240}
-                        className="object-contain transition-transform group-hover:scale-105"
-                      />
-                    ) : (
-                      <span className="material-icons-outlined text-6xl text-gray-400">
-                        image
-                      </span>
-                    )}
-                  </div>
-                  <h3 className="text-lg font-medium mb-1">{product.title}</h3>
-                  <p className="text-lg text-gray-500">${product.price.toFixed(2)}</p>
-                </Link>
+                <div key={product.id} className="w-full block group transition-transform hover:-translate-y-1">
+                  <Link
+                    href={`/products/${product.id}`}
+                    className="w-full block"
+                  >
+                    <div className="bg-[#F4F4F4] border-[#9B9B9B] border p-4 mb-6 h-[450px] flex items-center justify-center">
+                      {product.image_url ? (
+                        <Image
+                          src={product.image_url}
+                          alt={product.title}
+                          width={240}
+                          height={240}
+                          className="object-contain transition-transform group-hover:scale-105"
+                        />
+                      ) : (
+                        <span className="material-icons-outlined text-6xl text-gray-400">
+                          image
+                        </span>
+                      )}
+                    </div>
+                    <h3 className="text-lg font-medium mb-1">{product.title}</h3>
+                    <p className="text-lg text-gray-500">${product.price.toFixed(2)}</p>
+                  </Link>
+                  <button
+                    className="mt-2 w-full bg-black text-white py-2 rounded hover:bg-gray-800 transition-colors"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      addToCart(product, 1);
+                      toast.success('Added to cart!')
+                    }}
+                  >
+                    Add to Cart
+                  </button>
+                </div>
               ))
             )}
           </div>

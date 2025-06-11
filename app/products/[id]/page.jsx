@@ -9,6 +9,7 @@ import { toast } from 'sonner'
 import Navbar from '../../components/Navbar'
 import Footer from '../../components/Footer'
 import Newsletter from '../../components/Newsletter'
+import { useCart } from '../../context/CartContext'
 
 // Product Detail Skeleton Component
 const ProductDetailSkeleton = () => (
@@ -89,6 +90,8 @@ export default function ProductDetail({ params }) {
   const supabase = createClientComponentClient()
   const unwrappedParams = React.use(params)
   const productId = unwrappedParams.id
+  const { cart, addToCart } = useCart()
+  const isInCart = cart.some(item => item.id === product?.id)
 
   useEffect(() => {
     fetchProduct()
@@ -238,12 +241,26 @@ export default function ProductDetail({ params }) {
                         </div>
                       </div>
 
-                      <button
-                        onClick={handleCheckout}
-                        className="w-full bg-black cursor-pointer text-white py-4 rounded-full hover:bg-gray-800 transition-colors"
-                      >
-                        Buy product
-                      </button>
+                      {isInCart ? (
+                        <>
+                          <Link href="/cart" className="w-full block mb-2 bg-black text-white py-4 rounded-full text-center hover:bg-gray-800 transition-colors">
+                            Go to Cart
+                          </Link>
+                          <Link href="/checkout" className="w-full block bg-green-600 text-white py-4 rounded-full text-center hover:bg-green-700 transition-colors">
+                            Checkout
+                          </Link>
+                        </>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            addToCart(product, quantity)
+                            toast.success('Added to cart!')
+                          }}
+                          className="w-full bg-black cursor-pointer text-white py-4 rounded-full hover:bg-gray-800 transition-colors"
+                        >
+                          Add to Cart
+                        </button>
+                      )}
 
                       <p className="text-gray-600 text-sm mt-4 md:text-left text-center">
                         Note: Once purchase is made, delivery will be between 5 - 12 business days

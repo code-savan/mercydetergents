@@ -30,6 +30,8 @@ export async function POST(req) {
     case 'checkout.session.completed': {
       const session = event.data.object
       const metadata = session.metadata || {}
+      console.log('Webhook: session:', session)
+      console.log('Webhook: metadata:', metadata)
 
       // 1. Upsert customer
       const { data: customer, error: customerError } = await supabase
@@ -52,24 +54,28 @@ export async function POST(req) {
         break
       }
 
-      // 2. Insert order
-      const { error: orderError } = await supabase
-        .from('orders')
-        .insert({
+      // 2. Insert orders for each cart item
+      const productIds = (metadata.product_ids || '').split(',')
+      const quantities = (metadata.quantities || '').split(',')
+      for (let i = 0; i < productIds.length; i++) {
+        const product_id = productIds[i]
+        const quantity = parseInt(quantities[i], 10)
+        if (!product_id || !quantity) continue
+        const { error: orderError, data: orderData } = await supabase.from('orders').insert({
           customer_id: customer.id,
-          product_id: metadata.product_id,
-          quantity: parseInt(metadata.quantity, 10),
-          total_amount: parseFloat(metadata.total_price),
+          product_id,
+          quantity,
           status: 'paid',
           stripe_session_id: session.id,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         })
-
-      if (orderError) {
-        console.error('Order insert error:', orderError)
+        if (orderError) {
+          console.error('Order insert error:', orderError)
+        } else {
+          console.log('Order insert success:', orderData)
+        }
       }
-
       break
     }
     // Add more event types as needed

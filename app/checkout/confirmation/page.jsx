@@ -9,7 +9,7 @@ import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { useSearchParams } from 'next/navigation'
 
 function ConfirmationContent() {
-  const [order, setOrder] = useState(null)
+  const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const searchParams = useSearchParams()
@@ -17,26 +17,29 @@ function ConfirmationContent() {
   const supabase = createClientComponentClient()
 
   useEffect(() => {
-    const fetchOrder = async () => {
+    const fetchOrders = async () => {
       if (!sessionId) {
         setError('No session ID provided.')
         setLoading(false)
         return
       }
+      console.log('Confirmation: sessionId param:', sessionId)
       const { data, error } = await supabase
         .from('orders')
-        .select('*')
+        .select('*, product:product_id (title, price, image_url)')
         .eq('stripe_session_id', sessionId)
-        .single()
-      if (error || !data) {
+      console.log('Confirmation: fetchOrders result:', { data, error })
+      if (error || !data || data.length === 0) {
         setError('Order not found.')
       } else {
-        setOrder(data)
+        setOrders(data)
       }
       setLoading(false)
     }
-    fetchOrder()
+    fetchOrders()
   }, [sessionId])
+
+  const total = orders.reduce((sum, o) => sum + (o.product?.price || 0) * o.quantity, 0)
 
   return (
     <div className="max-w-2xl mx-auto text-center">
@@ -55,23 +58,24 @@ function ConfirmationContent() {
           </p>
           <div className="bg-[#F9F9F9] p-6 border border-gray-200 mb-8 text-left">
             <h2 className="text-xl font-medium mb-4">Order Details</h2>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Order Number:</p>
-                <p className="font-medium">MP-{order.id}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Date:</p>
-                <p className="font-medium">{new Date(order.created_at).toLocaleDateString()}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Payment Method:</p>
-                <p className="font-medium">Credit Card</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Shipping Method:</p>
-                <p className="font-medium">Standard Shipping</p>
-              </div>
+            <div className="space-y-4 mb-4">
+              {orders.map(order => (
+                <div key={order.id} className="flex items-center gap-4 border-b pb-4">
+                  {order.product?.image_url && (
+                    <img src={order.product.image_url} alt={order.product.title} className="w-16 h-16 object-contain border rounded" />
+                  )}
+                  <div className="flex-1">
+                    <div className="font-medium">{order.product?.title}</div>
+                    <div className="text-gray-500 text-sm">Quantity: {order.quantity}</div>
+                    <div className="text-gray-500 text-sm">Price: ${order.product?.price?.toFixed(2) || '0.00'}</div>
+                  </div>
+                  <div className="font-medium">${((order.product?.price || 0) * order.quantity).toFixed(2)}</div>
+                </div>
+              ))}
+            </div>
+            <div className="flex justify-between font-medium text-lg">
+              <span>Total</span>
+              <span>${total.toFixed(2)}</span>
             </div>
           </div>
           <p className="text-gray-600 mb-8">

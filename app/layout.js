@@ -5,6 +5,7 @@ import { AuthProvider } from "./auth/AuthContext";
 import ProtectedRoute from "./auth/ProtectedRoute";
 import { Inter } from 'next/font/google'
 import { Toaster } from 'sonner'
+import { CartProvider } from './context/CartContext'
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -49,11 +50,13 @@ export default function RootLayout({ children }) {
         className={`${geistSans.variable} ${geistMono.variable} ${antonio.variable} ${roboto.variable} ${montserrat.variable} antialiased ${inter.className}`}
       >
         <Toaster richColors closeButton position="top-center" expand={true} />
-        <AuthProvider>
-          <ProtectedRoute>
-            {children}
-          </ProtectedRoute>
-        </AuthProvider>
+        <CartProvider>
+          <AuthProvider>
+            <ProtectedRoute>
+              {children}
+            </ProtectedRoute>
+          </AuthProvider>
+        </CartProvider>
       </body>
     </html>
   );

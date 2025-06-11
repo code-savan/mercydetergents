@@ -4,10 +4,13 @@ import React, { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useCart } from '../context/CartContext'
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const pathname = usePathname()
+  const { cart } = useCart()
+  const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0)
 
   // Check if a path is the current active route
   const isActive = (path) => {
@@ -33,18 +36,29 @@ const Navbar = () => {
             />
           </Link>
 
-          {/* Menu Button */}
-          <button
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="flex items-center gap-3 group"
-          >
-            <span className="text-sm tracking-widest font-antonio font-bold">MENU</span>
-            <div className="flex flex-col gap-[4px]">
-              <span className={`h-[2px] bg-black transition-all duration-300 ${isMenuOpen ? 'w-6 -rotate-45 translate-y-2' : 'w-6'}`} />
-              <span className={`h-[2px] bg-black transition-all duration-300 ${isMenuOpen ? 'w-6 opacity-0' : 'w-6'}`} />
-              <span className={`h-[2px] bg-black transition-all duration-300 ${isMenuOpen ? 'w-6 rotate-45 -translate-y-2' : 'w-6'}`} />
-            </div>
-          </button>
+          <div className="flex items-center gap-6">
+            {/* Cart Icon */}
+            <Link href="/cart" className="relative group">
+              <span className="material-icons-outlined text-3xl text-black">shopping_cart</span>
+              {cartCount > 0 && (
+                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full px-2 py-0.5 font-bold">
+                  {cartCount}
+                </span>
+              )}
+            </Link>
+            {/* Menu Button */}
+            <button
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="flex items-center gap-3 group"
+            >
+              <span className="text-sm tracking-widest font-antonio font-bold">MENU</span>
+              <div className="flex flex-col gap-[4px]">
+                <span className={`h-[2px] bg-black transition-all duration-300 ${isMenuOpen ? 'w-6 -rotate-45 translate-y-2' : 'w-6'}`} />
+                <span className={`h-[2px] bg-black transition-all duration-300 ${isMenuOpen ? 'w-6 opacity-0' : 'w-6'}`} />
+                <span className={`h-[2px] bg-black transition-all duration-300 ${isMenuOpen ? 'w-6 rotate-45 -translate-y-2' : 'w-6'}`} />
+              </div>
+            </button>
+          </div>
         </div>
       </div>
 
