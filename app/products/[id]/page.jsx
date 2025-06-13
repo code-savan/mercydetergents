@@ -10,6 +10,7 @@ import Navbar from '../../components/Navbar'
 import Footer from '../../components/Footer'
 import Newsletter from '../../components/Newsletter'
 import { useCart } from '../../context/CartContext'
+import FloatingCart from '../../components/FloatingCart'
 
 // Product Detail Skeleton Component
 const ProductDetailSkeleton = () => (
@@ -56,29 +57,43 @@ const ProductDetailSkeleton = () => (
 )
 
 // Related Product Card Component
-const RelatedProductCard = ({ product }) => (
-  <Link
-    href={`/products/${product.id}`}
-    className="w-full block group transition-transform hover:-translate-y-1"
-  >
-    <div className="bg-[#F4F4F4] border-[#9B9B9B] border p-4 mb-4 h-[300px] flex items-center justify-center">
-      {product.image_url ? (
-        <Image
-          src={product.image_url}
-          alt={product.title}
-          width={160}
-          height={160}
-          className="object-contain transition-transform group-hover:scale-105"
-        />
-      ) : (
-        <span className="material-icons-outlined text-4xl text-gray-400">
-          image
-        </span>
-      )}
+const RelatedProductCard = ({ product, onAddToCart }) => (
+  <div className="w-full block group transition-transform hover:-translate-y-1 bg-white rounded-xl shadow border border-gray-100 p-4">
+    <div className="relative">
+      <Link href={`/products/${product.id}`} className="block">
+        <div className="bg-[#F4F4F4] border-[#9B9B9B] border p-4 mb-4 h-[200px] flex items-center justify-center rounded-lg relative">
+          {product.image_url ? (
+            <Image
+              src={product.image_url}
+              alt={product.title}
+              width={120}
+              height={120}
+              className="object-contain transition-transform group-hover:scale-105"
+            />
+          ) : (
+            <span className="material-icons-outlined text-4xl text-gray-400">
+              image
+            </span>
+          )}
+          {/* Floating Add to Cart Icon */}
+          <button
+            className="absolute bottom-2 right-2 bg-black text-white rounded-full w-10 h-10 flex items-center justify-center shadow-lg opacity-90 hover:opacity-100 hover:bg-gray-900 transition-all group/addtocart z-10"
+            onClick={e => {
+              e.preventDefault();
+              onAddToCart(product);
+            }}
+            aria-label="Add to cart"
+            tabIndex={0}
+          >
+            <span className="material-icons-outlined text-xl">add_shopping_cart</span>
+            <span className="absolute bottom-10 right-0 bg-black text-white text-xs rounded px-2 py-1 opacity-0 group-hover/addtocart:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">Add to cart</span>
+          </button>
+        </div>
+      </Link>
     </div>
     <h3 className="text-lg font-medium mb-1">{product.title}</h3>
-    <p className="text-lg text-gray-500">${product.price.toFixed(2)}</p>
-  </Link>
+    <p className="text-lg text-gray-500 mb-2">${product.price.toFixed(2)}</p>
+  </div>
 )
 
 export default function ProductDetail({ params }) {
@@ -246,9 +261,9 @@ export default function ProductDetail({ params }) {
                           <Link href="/cart" className="w-full block mb-2 bg-black text-white py-4 rounded-full text-center hover:bg-gray-800 transition-colors">
                             Go to Cart
                           </Link>
-                          <Link href="/checkout" className="w-full block bg-green-600 text-white py-4 rounded-full text-center hover:bg-green-700 transition-colors">
+                          {/* <Link href="/checkout" className="w-full block bg-green-600 text-white py-4 rounded-full text-center hover:bg-green-700 transition-colors">
                             Checkout
-                          </Link>
+                          </Link> */}
                         </>
                       ) : (
                         <button
@@ -280,7 +295,14 @@ export default function ProductDetail({ params }) {
                   <h2 className="text-2xl font-antonio font-bold mb-8">Related Products</h2>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                     {relatedProducts.map(relatedProduct => (
-                      <RelatedProductCard key={relatedProduct.id} product={relatedProduct} />
+                      <RelatedProductCard
+                        key={relatedProduct.id}
+                        product={relatedProduct}
+                        onAddToCart={(prod) => {
+                          addToCart(prod, 1)
+                          toast.success('Added to cart!')
+                        }}
+                      />
                     ))}
                   </div>
                 </div>
@@ -292,6 +314,7 @@ export default function ProductDetail({ params }) {
 
       <Newsletter bgColor="#CBFECE" />
       <Footer />
+      <FloatingCart />
     </div>
   )
 }
