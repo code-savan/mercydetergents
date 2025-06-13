@@ -35,10 +35,24 @@ export function CartProvider({ children }) {
     setCart(prev => prev.filter(item => item.id !== productId))
   }
 
-  const clearCart = () => setCart([])
+  const clearCart = () => {
+    setCart([])
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem('checkoutCart')
+    }
+  }
+
+  // Helper to get checkoutCart from sessionStorage
+  const getCheckoutCart = () => {
+    if (typeof window !== 'undefined') {
+      const stored = sessionStorage.getItem('checkoutCart')
+      if (stored) return JSON.parse(stored)
+    }
+    return []
+  }
 
   return (
-    <CartContext.Provider value={{ cart, addToCart, removeFromCart, clearCart }}>
+    <CartContext.Provider value={{ cart, addToCart, removeFromCart, clearCart, getCheckoutCart }}>
       {children}
     </CartContext.Provider>
   )

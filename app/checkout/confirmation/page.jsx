@@ -9,37 +9,45 @@ import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { useSearchParams } from 'next/navigation'
 
 function ConfirmationContent() {
-  const [orders, setOrders] = useState([])
+  const [order, setOrder] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [retries, setRetries] = useState(0)
   const searchParams = useSearchParams()
   const sessionId = searchParams.get('session_id')
   const supabase = createClientComponentClient()
 
   useEffect(() => {
-    const fetchOrders = async () => {
+    let timeoutId
+    const fetchOrder = async () => {
       if (!sessionId) {
         setError('No session ID provided.')
         setLoading(false)
         return
       }
-      console.log('Confirmation: sessionId param:', sessionId)
       const { data, error } = await supabase
         .from('orders')
-        .select('*, product:product_id (title, price, image_url)')
+        .select('*')
         .eq('stripe_session_id', sessionId)
-      console.log('Confirmation: fetchOrders result:', { data, error })
-      if (error || !data || data.length === 0) {
-        setError('Order not found.')
+        .single()
+      if (error || !data) {
+        if (retries < 7) {
+          setRetries(r => r + 1)
+          timeoutId = setTimeout(fetchOrder, 2000)
+        } else {
+          setError('Order is still processing. Please refresh this page in a moment.')
+          setLoading(false)
+        }
       } else {
-        setOrders(data)
+        setOrder(data)
+        setLoading(false)
       }
-      setLoading(false)
     }
-    fetchOrders()
-  }, [sessionId])
+    fetchOrder()
+    return () => clearTimeout(timeoutId)
+  }, [sessionId, retries])
 
-  const total = orders.reduce((sum, o) => sum + (o.product?.price || 0) * o.quantity, 0)
+  const total = order?.total_amount || 0
 
   return (
     <div className="max-w-2xl mx-auto text-center">
@@ -59,23 +67,23 @@ function ConfirmationContent() {
           <div className="bg-[#F9F9F9] p-6 border border-gray-200 mb-8 text-left">
             <h2 className="text-xl font-medium mb-4">Order Details</h2>
             <div className="space-y-4 mb-4">
-              {orders.map(order => (
-                <div key={order.id} className="flex items-center gap-4 border-b pb-4">
-                  {order.product?.image_url && (
-                    <img src={order.product.image_url} alt={order.product.title} className="w-16 h-16 object-contain border rounded" />
+              {order.items.map((item, idx) => (
+                <div key={item.product_id || idx} className="flex items-center gap-4 border-b border-b-gray-300 pb-4">
+                  {item.image_url && (
+                    <img src={item.image_url} alt={item.title} className="w-16 h-16 object-contain border rounded" />
                   )}
                   <div className="flex-1">
-                    <div className="font-medium">{order.product?.title}</div>
-                    <div className="text-gray-500 text-sm">Quantity: {order.quantity}</div>
-                    <div className="text-gray-500 text-sm">Price: ${order.product?.price?.toFixed(2) || '0.00'}</div>
+                    <div className="font-medium">{item.title}</div>
+                    <div className="text-gray-500 text-sm">Quantity: {item.quantity}</div>
+                    <div className="text-gray-500 text-sm">Price: ${Number(item.price).toFixed(2)}</div>
                   </div>
-                  <div className="font-medium">${((order.product?.price || 0) * order.quantity).toFixed(2)}</div>
+                  <div className="font-medium">${(Number(item.price) * Number(item.quantity)).toFixed(2)}</div>
                 </div>
               ))}
             </div>
             <div className="flex justify-between font-medium text-lg">
               <span>Total</span>
-              <span>${total.toFixed(2)}</span>
+              <span>${Number(total).toFixed(2)}</span>
             </div>
           </div>
           <p className="text-gray-600 mb-8">

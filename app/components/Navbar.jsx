@@ -37,15 +37,7 @@ const Navbar = () => {
           </Link>
 
           <div className="flex items-center gap-6">
-            {/* Cart Icon */}
-            <Link href="/cart" className="relative group">
-              <span className="material-icons-outlined text-3xl text-black">shopping_cart</span>
-              {cartCount > 0 && (
-                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full px-2 py-0.5 font-bold">
-                  {cartCount}
-                </span>
-              )}
-            </Link>
+            {/* Cart Icon removed, now handled by FloatingCart */}
             {/* Menu Button */}
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}

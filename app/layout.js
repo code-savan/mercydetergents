@@ -6,6 +6,7 @@ import ProtectedRoute from "./auth/ProtectedRoute";
 import { Inter } from 'next/font/google'
 import { Toaster } from 'sonner'
 import { CartProvider } from './context/CartContext'
+import FloatingCart from './components/FloatingCart'
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -54,6 +55,7 @@ export default function RootLayout({ children }) {
           <AuthProvider>
             <ProtectedRoute>
               {children}
+              <FloatingCart />
             </ProtectedRoute>
           </AuthProvider>
         </CartProvider>

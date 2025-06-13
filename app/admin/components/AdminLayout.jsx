@@ -86,14 +86,14 @@ export default function AdminLayout({ children, title }) {
 
           <div className="flex items-center gap-4">
             <span className="text-sm text-gray-500 hidden md:inline-block">
-              mercypeter@gmail.com
+            mercy@mercypeterdetergent.com
             </span>
-            <button
+            {/* <button
             //   onClick={signOut}
               className="text-sm text-gray-600 hover:text-gray-900"
             >
               Sign out
-            </button>
+            </button> */}
           </div>
         </header>
 

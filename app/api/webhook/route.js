@@ -1,6 +1,10 @@
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
+
 import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
+import { Resend } from 'resend'
 
 // Stripe secret key and webhook secret from env
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
@@ -11,6 +15,8 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY
 )
+
+const resend = new Resend(process.env.RESEND_API_KEY)
 
 export async function POST(req) {
   const sig = req.headers.get('stripe-signature')
@@ -54,26 +60,60 @@ export async function POST(req) {
         break
       }
 
-      // 2. Insert orders for each cart item
-      const productIds = (metadata.product_ids || '').split(',')
-      const quantities = (metadata.quantities || '').split(',')
-      for (let i = 0; i < productIds.length; i++) {
-        const product_id = productIds[i]
-        const quantity = parseInt(quantities[i], 10)
-        if (!product_id || !quantity) continue
-        const { error: orderError, data: orderData } = await supabase.from('orders').insert({
-          customer_id: customer.id,
-          product_id,
-          quantity,
-          status: 'paid',
-          stripe_session_id: session.id,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        if (orderError) {
-          console.error('Order insert error:', orderError)
-        } else {
-          console.log('Order insert success:', orderData)
+      // 2. Fetch cart from pending_carts using cart_id
+      let cart = []
+      if (!metadata.cart_id) {
+        console.error('No cart_id in metadata')
+        break
+      }
+      const { data: pendingCart, error: pendingCartError } = await supabase
+        .from('pending_carts')
+        .select('items')
+        .eq('id', metadata.cart_id)
+        .single()
+      if (pendingCartError || !pendingCart) {
+        console.error('Failed to fetch pending cart:', pendingCartError)
+        break
+      }
+      cart = pendingCart.items
+      // Optionally, delete the pending cart after use
+      await supabase.from('pending_carts').delete().eq('id', metadata.cart_id)
+      const total_amount = parseFloat(metadata.total_amount)
+      const orderPayload = {
+        customer_id: customer.id,
+        items: cart,
+        total_amount,
+        status: 'paid',
+        stripe_session_id: session.id,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }
+      console.log('Order insert payload:', orderPayload)
+      const { error: orderError, data: orderData } = await supabase.from('orders').insert(orderPayload)
+      if (orderError) {
+        console.error('Order insert error:', orderError.message, orderError)
+      } else {
+        console.log('Order insert success:', orderData)
+        // Send emails to store owner and customer
+        try {
+          const orderSummary = cart.map(item => `${item.title} x${item.quantity || 1} - $${item.price?.toFixed(2) || '0.00'}`).join('\n')
+          const emailBody = `Thank you for your order!\n\nOrder Details:\n${orderSummary}\n\nTotal: $${total_amount.toFixed(2)}\n\nShipping to: ${customer.full_name}, ${customer.address}, ${customer.city}, ${customer.state}, ${customer.zip}`
+          // Email to customer
+          await resend.emails.send({
+            from: 'Mercy Peter Detergents <onboarding@resend.dev>',
+            to: [session.customer_email],
+            subject: 'Your Order Confirmation',
+            text: emailBody
+          })
+          // Email to store owner
+          await resend.emails.send({
+            from: 'Mercy Peter Detergents <onboarding@resend.dev>',
+            to: ['codesavan@proton.me'],
+            subject: 'New Order Received',
+            text: `A new order has been placed.\n\nCustomer: ${customer.full_name} (${customer.email})\nOrder Details:\n${orderSummary}\nTotal: $${total_amount.toFixed(2)}`
+          })
+        } catch (emailErr) {
+          console.error('Error sending order emails:', emailErr)
         }
       }
       break

@@ -15,7 +15,7 @@ export default function OrdersAdmin() {
     const fetchOrders = async () => {
       const { data, error } = await supabase
         .from('orders')
-        .select('id, created_at, status, total_amount, quantity, customer:customer_id (full_name, email), product:product_id (title)')
+        .select('id, created_at, status, total_amount, items, customer:customer_id (full_name, email)')
         .order('created_at', { ascending: false })
       setOrders(data || [])
       setLoading(false)
@@ -84,6 +84,9 @@ export default function OrdersAdmin() {
                   Status
                 </th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Products
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Total
                 </th>
                 <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -93,11 +96,18 @@ export default function OrdersAdmin() {
             </thead>
             <tbody className="bg-white divide-y divide-gray-100">
               {loading ? (
-                <tr><td colSpan={6} className="text-center py-8 text-gray-400">Loading orders...</td></tr>
+                <tr><td colSpan={7} className="text-center py-8 text-gray-400">Loading orders...</td></tr>
               ) : orders.length === 0 ? (
-                <tr><td colSpan={6} className="text-center py-8 text-gray-400">No orders found.</td></tr>
+                <tr><td colSpan={7} className="text-center py-8 text-gray-400">No orders found.</td></tr>
               ) : orders.map((order) => (
-                <tr key={order.id} className="hover:bg-gray-50">
+                <tr
+                  key={order.id}
+                  className="hover:bg-blue-50 cursor-pointer group"
+                  onClick={() => window.location.href = `/admin/orders/${order.id}`}
+                  tabIndex={0}
+                  onKeyDown={e => { if (e.key === 'Enter') window.location.href = `/admin/orders/${order.id}`; }}
+                  aria-label={`View order MP-${order.id}`}
+                >
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     MP-{order.id}
                   </td>
@@ -114,13 +124,23 @@ export default function OrdersAdmin() {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center gap-2">
+                      {order.items && order.items.slice(0,2).map((item, idx) => (
+                        <span key={idx} className="inline-block bg-gray-100 border border-gray-200 rounded px-2 py-1 text-xs text-gray-700 truncate max-w-[80px]">{item.title}</span>
+                      ))}
+                      {order.items && order.items.length > 2 && (
+                        <span className="inline-block bg-gray-200 rounded px-2 py-1 text-xs text-gray-600">+{order.items.length - 2} more</span>
+                      )}
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1">{order.items?.length || 0} item{order.items?.length === 1 ? '' : 's'}</div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-900">${order.total_amount?.toFixed(2) || '0.00'}</div>
-                    <div className="text-xs text-gray-500">{order.quantity} item{order.quantity > 1 ? 's' : ''}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
                     <Link
                       href={`/admin/orders/${order.id}`}
-                      className="text-blue-600 hover:underline"
+                      className="text-blue-600 group-hover:underline"
                     >
                       View
                     </Link>

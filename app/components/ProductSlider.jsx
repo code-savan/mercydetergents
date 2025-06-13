@@ -11,9 +11,9 @@ import { useCart } from '../context/CartContext'
 const ProductCard = ({ id, image, title, price, product }) => {
   const { addToCart } = useCart()
   return (
-    <div className="min-w-[280px] flex-shrink-0 mr-4 block group transition-transform hover:-translate-y-1">
+    <div className="min-w-[280px] flex-shrink-0 mr-4 block group transition-transform hover:-translate-y-1 relative">
       <Link href={`/products/${id}`} className="block">
-        <div className="bg-[#F4F4F4] border-[#9B9B9B] border p-4 mb-6 h-[450px] flex items-center justify-center">
+        <div className="bg-[#F4F4F4] border-[#9B9B9B] border p-4 mb-6 h-[450px] flex items-center justify-center relative">
           {image ? (
             <Image
               src={image}
@@ -25,20 +25,24 @@ const ProductCard = ({ id, image, title, price, product }) => {
           ) : (
             <span className="material-icons-outlined text-6xl text-gray-400">image</span>
           )}
+          {/* Floating Add to Cart Icon */}
+          <button
+            className="absolute bottom-4 right-4 bg-black text-white rounded-full w-11 h-11 flex items-center justify-center shadow-lg opacity-90 hover:opacity-100 hover:bg-gray-900 transition-all group/addtocart"
+            onClick={e => {
+              e.preventDefault();
+              addToCart(product, 1);
+              if (typeof window !== 'undefined' && window.toast) window.toast.success('Added to cart!')
+            }}
+            aria-label="Add to cart"
+            tabIndex={0}
+          >
+            <span className="material-icons-outlined text-2xl">add_shopping_cart</span>
+            <span className="absolute bottom-12 right-0 bg-black text-white text-xs rounded px-2 py-1 opacity-0 group-hover/addtocart:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">Add to cart</span>
+          </button>
         </div>
         <h3 className="text-lg font-medium mb-1">{title}</h3>
         <p className="text-lg text-gray-500">${price}</p>
       </Link>
-      <button
-        className="mt-2 w-full bg-black text-white py-2 rounded hover:bg-gray-800 transition-colors"
-        onClick={(e) => {
-          e.preventDefault();
-          addToCart(product, 1);
-          toast.success('Added to cart!')
-        }}
-      >
-        Add to Cart
-      </button>
     </div>
   )
 }

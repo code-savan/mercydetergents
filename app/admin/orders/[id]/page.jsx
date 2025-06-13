@@ -8,7 +8,7 @@ import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 
 export default function OrderDetail() {
   const params = useParams()
-  const orderId = params.id
+  const orderId = params.id?.replace(/^MP-/, '')
   const [order, setOrder] = useState(null)
   const [loading, setLoading] = useState(true)
   const supabase = createClientComponentClient()
@@ -19,7 +19,7 @@ export default function OrderDetail() {
     const fetchOrder = async () => {
       const { data, error } = await supabase
         .from('orders')
-        .select('*, customer:customer_id (full_name, email, phone, address, city, state, zip), product:product_id (title, price)')
+        .select('id, created_at, status, total_amount, items, customer:customer_id (full_name, email, phone, address, city, state, zip)')
         .eq('id', orderId)
         .single()
       console.log('OrderDetail: fetchOrder result:', { data, error })
@@ -160,20 +160,28 @@ export default function OrderDetail() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-100">
-                  <tr>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {order.product?.title || 'N/A'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      ${order.product?.price?.toFixed(2) || '0.00'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {order.quantity}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
-                      ${(order.product?.price && order.quantity) ? (order.product.price * order.quantity).toFixed(2) : '0.00'}
-                    </td>
-                  </tr>
+                  {order.items && order.items.length > 0 ? (
+                    order.items.map((item, idx) => (
+                      <tr key={idx}>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          {item.title || 'N/A'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          ${item.price?.toFixed(2) || '0.00'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {item.quantity || 1}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
+                          ${(item.price && item.quantity) ? (item.price * item.quantity).toFixed(2) : '0.00'}
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan="4" className="px-6 py-4 text-center text-gray-400">No items found.</td>
+                    </tr>
+                  )}
                 </tbody>
                 <tfoot className="bg-gray-50">
                   <tr>
@@ -190,24 +198,42 @@ export default function OrderDetail() {
           </div>
         </div>
 
+      </div>
         {/* Shipping Information */}
         <div>
           <div className="bg-white border border-gray-100 overflow-hidden mb-6">
             <div className="px-6 py-4 border-b border-gray-100">
               <h3 className="font-medium">Shipping Address</h3>
             </div>
-            <div className="p-6">
-              {order.customer?.full_name && <p className="text-sm mb-1">{order.customer.full_name}</p>}
-              {order.customer?.address && <p className="text-sm mb-1">{order.customer.address}</p>}
-              {order.customer?.city && <p className="text-sm mb-1">{order.customer.city}{order.customer?.state ? `, ${order.customer.state}` : ''}</p>}
-              {order.customer?.zip && <p className="text-sm mb-1">{order.customer.zip}</p>}
-              {order.customer?.country && <p className="text-sm">{order.customer.country}</p>}
+            <div className="p-6 space-y-2">
+              {order.customer?.full_name && (
+                <p className="text-sm mb-1">
+                  <span className="font-medium">Name:</span> {order.customer.full_name}
+                </p>
+              )}
+              {order.customer?.address && (
+                <p className="text-sm mb-1">
+                  <span className="font-medium">Address:</span> {order.customer.address}
+                </p>
+              )}
+              {(order.customer?.city || order.customer?.state) && (
+                <p className="text-sm mb-1">
+                  <span className="font-medium">City/State:</span>{" "}
+                  {order.customer.city}
+                  {order.customer?.state ? `, ${order.customer.state}` : ""}
+                </p>
+              )}
+              {order.customer?.zip && (
+                <p className="text-sm mb-1">
+                  <span className="font-medium">Zip:</span> {order.customer.zip}
+                </p>
+              )}
+              {/* {order.customer?.country && <p className="text-sm"><span className="font-medium">Country:</span> {order.customer.country}</p>} */}
             </div>
           </div>
 
 
         </div>
-      </div>
     </AdminLayout>
   )
 }

@@ -36,6 +36,11 @@ export default function CheckoutPage() {
       } catch (error) {
         console.error('Failed to parse checkout cart:', error)
       }
+    } else {
+      // Fallback: get from CartContext if available
+      if (typeof window !== 'undefined' && window.getCheckoutCart) {
+        setCheckoutCart(window.getCheckoutCart())
+      }
     }
     setIsLoading(false)
   }, [])
@@ -85,7 +90,17 @@ export default function CheckoutPage() {
     if (!validateForm()) return
     setSubmitting(true)
     try {
-      // Prepare Stripe line_items for all cart items
+      // 1. Save cart to pending_carts table and get cart_id
+      const pendingCartRes = await fetch('/api/pending-cart', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items: checkoutCart })
+      })
+      const pendingCartData = await pendingCartRes.json()
+      if (!pendingCartRes.ok) throw new Error(pendingCartData.error || 'Failed to save cart')
+      const cart_id = pendingCartData.id
+
+      // 2. Prepare Stripe line_items for all cart items
       const line_items = checkoutCart.map(item => {
         const imageUrl = item.image_url && item.image_url.startsWith('http')
           ? item.image_url
@@ -102,14 +117,13 @@ export default function CheckoutPage() {
           quantity: item.quantity,
         }
       })
-      // Prepare metadata for webhook (send as JSON string)
+      // 3. Prepare minimal metadata for webhook
       const metadata = {
-        // cart: JSON.stringify(checkoutCart),
-        product_ids: checkoutCart.map(item => item.id).join(','),
-  quantities: checkoutCart.map(item => item.quantity).join(','),
+        cart_id,
+        total_amount: total,
         ...formData
       }
-      // Call backend to create Stripe Checkout session
+      // 4. Call backend to create Stripe Checkout session
       const res = await fetch('/api/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

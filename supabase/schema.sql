@@ -37,6 +37,25 @@ CREATE TABLE customers (
   CONSTRAINT customers_email_key UNIQUE (email)
 );
 
+-- Create new orders table for cart-based orders
+CREATE TABLE IF NOT EXISTS orders (
+  id uuid PRIMARY KEY DEFAULT extensions.uuid_generate_v4(),
+  customer_id uuid REFERENCES customers(id) ON DELETE SET NULL,
+  items jsonb NOT NULL, -- array of cart items
+  total_amount numeric(10,2) NOT NULL,
+  status text NOT NULL DEFAULT 'pending',
+  stripe_session_id text,
+  created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  updated_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+-- Table to store pending carts before checkout
+CREATE TABLE IF NOT EXISTS pending_carts (
+  id uuid PRIMARY KEY DEFAULT extensions.uuid_generate_v4(),
+  items jsonb NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
 -- Create RLS policies
 ALTER TABLE products ENABLE ROW LEVEL SECURITY;
 ALTER TABLE customers ENABLE ROW LEVEL SECURITY;
