@@ -50,7 +50,10 @@ export default function RootLayout({ children }) {
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${antonio.variable} ${roboto.variable} ${montserrat.variable} antialiased ${inter.className}`}
       >
-        <Toaster richColors closeButton position="top-center" expand={true} />
+        <Toaster richColors closeButton position="bottom-left" expand={true} toastOptions={{
+          style: { background: 'white', color: '#222' },
+          className: 'border border-gray-200 shadow-lg'
+        }} />
         <CartProvider>
           <AuthProvider>
             <ProtectedRoute>
