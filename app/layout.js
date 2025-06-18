@@ -1,8 +1,8 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import { Antonio, Roboto, Montserrat } from "next/font/google";
 import "./globals.css";
-import { AuthProvider } from "./auth/AuthContext";
-import ProtectedRoute from "./auth/ProtectedRoute";
+// import { AuthProvider } from "./auth/AuthContext";
+// import ProtectedRoute from "./auth/ProtectedRoute";
 import { Inter } from 'next/font/google'
 import { Toaster } from 'sonner'
 import { CartProvider } from './context/CartContext'
@@ -55,12 +55,8 @@ export default function RootLayout({ children }) {
           className: 'border border-gray-200 shadow-lg'
         }} />
         <CartProvider>
-          <AuthProvider>
-            <ProtectedRoute>
-              {children}
-              <FloatingCart />
-            </ProtectedRoute>
-          </AuthProvider>
+          {children}
+          <FloatingCart />
         </CartProvider>
       </body>
     </html>

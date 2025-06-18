@@ -70,7 +70,7 @@ function ConfirmationContent() {
               {order.items.map((item, idx) => (
                 <div key={item.product_id || idx} className="flex items-center gap-4 border-b border-b-gray-300 pb-4">
                   {item.image_url && (
-                    <img src={item.image_url} alt={item.title} className="w-16 h-16 object-contain border rounded" />
+                    <img src={item.image_url} alt={item.title} className="w-16 h-16 object-contain  rounded" />
                   )}
                   <div className="flex-1">
                     <div className="font-medium">{item.title}</div>
