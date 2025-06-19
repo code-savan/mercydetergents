@@ -5,6 +5,7 @@ import AdminLayout from '../components/AdminLayout'
 import Link from 'next/link'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { formatRelativeDate } from '../../utils/formatDate'
+import { toast } from 'sonner'
 
 export default function CustomersAdmin() {
   const [customers, setCustomers] = useState([])
@@ -67,13 +68,21 @@ export default function CustomersAdmin() {
 
   const handleSendEmail = async () => {
     setSending(true)
-    // Simulate sending email (replace with real API call later)
-    console.log('Send email to:', emailTo, 'Subject:', emailSubject, 'Message:', emailMessage)
-    setTimeout(() => {
-      setSending(false)
+    try {
+      const res = await fetch('/api/admin-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to: emailTo, subject: emailSubject, message: emailMessage })
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to send email')
+      toast.success('Email sent!')
       setShowEmailModal(false)
-      alert('Email sent! (simulated)')
-    }, 1000)
+    } catch (err) {
+      toast.error(err.message)
+    } finally {
+      setSending(false)
+    }
   }
 
   // Filter customers by search
