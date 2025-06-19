@@ -127,7 +127,7 @@ export async function POST(req) {
           console.error('Order fetch error after insert:', fetchOrderError)
           orderId = null
         }
-        const orderLink = orderId ? `${NEXT_PUBLIC_BASE_URL}/admin/orders/${orderId}` : 'Order ID not available'
+        const orderLink = orderId ? `${process.env.NEXT_PUBLIC_BASE_URL}/admin/orders/${orderId}` : 'Order ID not available'
         const ownerHtml = `
           <div style="max-width:480px;margin:0 auto;font-family:sans-serif;background:#fff;border-radius:12px;box-shadow:0 2px 8px #0001;padding:32px 24px;">
             <h1 style="font-size:22px;margin-bottom:8px;color:#0ea5e9;">New Order Received</h1>
