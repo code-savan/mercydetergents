@@ -130,7 +130,7 @@ export default function ProductsAdmin() {
         </Link>
       </div>
 
-      <div className="bg-white border border-gray-100 overflow-hidden">
+      <div className="bg-white border border-gray-100 overflow-x-auto">
         {isLoading ? (
           <div className="p-8 text-center">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
@@ -148,7 +148,7 @@ export default function ProductsAdmin() {
             </Link>
           </div>
         ) : (
-          <table className="min-w-full divide-y divide-gray-100">
+          <table className="min-w-[700px] w-full divide-y divide-gray-100">
             <thead>
               <tr className="bg-gray-50">
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -195,22 +195,22 @@ export default function ProductsAdmin() {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {product.id}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
+                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm min-w-[160px] flex flex-row gap-2 justify-end items-center">
                     <Link
                       href={`/admin/products/${product.id}/view`}
-                      className="text-gray-600 hover:underline mr-4"
+                      className="text-gray-600 hover:underline px-2 py-1"
                     >
                       View
                     </Link>
                     <Link
                       href={`/admin/products/${product.id}`}
-                      className="text-blue-600 hover:underline mr-4"
+                      className="text-blue-600 hover:underline px-2 py-1"
                     >
                       Edit
                     </Link>
                     <button
                       onClick={() => confirmDelete(product)}
-                      className="text-red-600 hover:underline"
+                      className="text-red-600 hover:underline px-2 py-1"
                     >
                       Delete
                     </button>

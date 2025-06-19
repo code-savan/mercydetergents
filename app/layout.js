@@ -6,7 +6,7 @@ import "./globals.css";
 import { Inter } from 'next/font/google'
 import { Toaster } from 'sonner'
 import { CartProvider } from './context/CartContext'
-import FloatingCart from './components/FloatingCart'
+import LayoutWithCart from './components/LayoutWithCart'
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -55,8 +55,7 @@ export default function RootLayout({ children }) {
           className: 'border border-gray-200 shadow-lg'
         }} />
         <CartProvider>
-          {children}
-          <FloatingCart />
+          <LayoutWithCart>{children}</LayoutWithCart>
         </CartProvider>
       </body>
     </html>
