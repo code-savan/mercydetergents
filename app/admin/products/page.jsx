@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { toast } from 'sonner'
@@ -13,10 +13,16 @@ export default function ProductsAdmin() {
   const [error, setError] = useState(null)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [productToDelete, setProductToDelete] = useState(null)
+  const [shippingFee, setShippingFee] = useState(null)
+  const [isEditingShipping, setIsEditingShipping] = useState(false)
+  const [shippingInput, setShippingInput] = useState('')
+  const [isSavingShipping, setIsSavingShipping] = useState(false)
   const supabase = createClientComponentClient()
+  const shippingInputRef = useRef(null)
 
   useEffect(() => {
     fetchProducts()
+    fetchShippingFee()
   }, [])
 
   const fetchProducts = async () => {
@@ -37,6 +43,52 @@ export default function ProductsAdmin() {
       toast.error('Failed to load products')
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const fetchShippingFee = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('settings')
+        .select('value')
+        .eq('key', 'shipping_fee')
+        .single()
+      if (error) throw error
+      setShippingFee(data?.value)
+    } catch (err) {
+      setShippingFee(null)
+    }
+  }
+
+  const handleEditShipping = () => {
+    setShippingInput(shippingFee || '')
+    setIsEditingShipping(true)
+    setTimeout(() => {
+      if (shippingInputRef.current) shippingInputRef.current.focus()
+    }, 100)
+  }
+
+  const handleSaveShipping = async () => {
+    setIsSavingShipping(true)
+    try {
+      const value = shippingInput.trim()
+      if (!value || isNaN(Number(value))) {
+        toast.error('Please enter a valid shipping fee')
+        setIsSavingShipping(false)
+        return
+      }
+      const { error } = await supabase
+        .from('settings')
+        .update({ value })
+        .eq('key', 'shipping_fee')
+      if (error) throw error
+      setShippingFee(value)
+      setIsEditingShipping(false)
+      toast.success('Shipping fee updated')
+    } catch (err) {
+      toast.error('Failed to update shipping fee')
+    } finally {
+      setIsSavingShipping(false)
     }
   }
 
@@ -87,6 +139,52 @@ export default function ProductsAdmin() {
 
   return (
     <AdminLayout title="Products">
+      {/* Shipping Fee Section */}
+      <div className="bg-white border border-gray-100 p-4 sm:p-6 mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center">
+          <span className="text-gray-700 font-medium">Shipping Fee:</span>
+          {isEditingShipping ? (
+            <input
+              ref={shippingInputRef}
+              type="number"
+              min="0"
+              className="mt-2 sm:mt-0 sm:ml-2 border border-gray-300 px-2 py-1 w-full sm:w-24 focus:outline-none focus:border-black"
+              value={shippingInput}
+              onChange={e => setShippingInput(e.target.value)}
+              disabled={isSavingShipping}
+            />
+          ) : (
+            <span className="mt-2 sm:mt-0 sm:ml-2 text-gray-900">${shippingFee ?? '...'}</span>
+          )}
+        </div>
+        <div className="flex gap-2">
+          {isEditingShipping ? (
+            <>
+              <button
+                onClick={handleSaveShipping}
+                className="bg-black text-white px-4 py-1 text-sm hover:bg-gray-800 disabled:opacity-50"
+                disabled={isSavingShipping}
+              >
+                {isSavingShipping ? 'Saving...' : 'Save'}
+              </button>
+              <button
+                onClick={() => setIsEditingShipping(false)}
+                className="text-gray-600 hover:text-gray-900 text-sm"
+                disabled={isSavingShipping}
+              >
+                Cancel
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={handleEditShipping}
+              className="text-blue-600 hover:underline text-sm"
+            >
+              Edit
+            </button>
+          )}
+        </div>
+      </div>
       {/* Delete Confirmation Modal */}
       {showDeleteModal && productToDelete && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">

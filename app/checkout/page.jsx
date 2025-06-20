@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import { useCart } from '../context/CartContext'
+import { supabase } from '../../lib/supabase/config'
 
 export default function CheckoutPage() {
   const router = useRouter()
@@ -26,6 +27,8 @@ export default function CheckoutPage() {
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState(null)
   const { clearCart } = useCart()
+  const [shippingFee, setShippingFee] = useState(0)
+  const [shippingLoading, setShippingLoading] = useState(true)
 
   useEffect(() => {
     // Retrieve cart from sessionStorage
@@ -43,7 +46,25 @@ export default function CheckoutPage() {
       }
     }
     setIsLoading(false)
+    fetchShippingFee()
   }, [])
+
+  const fetchShippingFee = async () => {
+    setShippingLoading(true)
+    try {
+      const { data, error } = await supabase
+        .from('settings')
+        .select('value')
+        .eq('key', 'shipping_fee')
+        .single()
+      if (error) throw error
+      setShippingFee(Number(data?.value) || 0)
+    } catch (err) {
+      setShippingFee(0)
+    } finally {
+      setShippingLoading(false)
+    }
+  }
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
@@ -81,7 +102,7 @@ export default function CheckoutPage() {
   }
 
   const subtotal = checkoutCart.reduce((sum, item) => sum + item.price * item.quantity, 0)
-  const shipping = checkoutCart.length > 0 ? 10 : 0
+  const shipping = checkoutCart.length > 0 ? shippingFee : 0
   const total = subtotal + shipping
 
   const handleSubmit = async (e) => {
@@ -117,6 +138,19 @@ export default function CheckoutPage() {
           quantity: item.quantity,
         }
       })
+      // Add shipping fee as a separate line item
+      if (shipping > 0) {
+        line_items.push({
+          price_data: {
+            currency: 'usd',
+            product_data: {
+              name: 'Shipping Fee',
+            },
+            unit_amount: Math.round(shipping * 100),
+          },
+          quantity: 1,
+        })
+      }
       // 3. Prepare minimal metadata for webhook
       const metadata = {
         cart_id,
@@ -363,9 +397,13 @@ export default function CheckoutPage() {
                   <button
                     type="submit"
                     className="bg-black text-white py-3 px-6 w-full focus:outline-none hover:bg-gray-800 transition-colors"
-                    disabled={submitting}
+                    disabled={submitting || shippingLoading}
                   >
-                    {submitting ? 'Redirecting to Payment...' : `Proceed to Payment - $${total.toFixed(2)}`}
+                    {shippingLoading
+                      ? 'Loading...'
+                      : submitting
+                        ? 'Redirecting to Payment...'
+                        : `Proceed to Payment - $${total.toFixed(2)}`}
                   </button>
                   {submitError && <p className="text-red-500 text-sm mt-2">{submitError}</p>}
                   <p className="text-sm text-gray-600 mt-4">

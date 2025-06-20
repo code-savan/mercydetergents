@@ -1,15 +1,39 @@
 'use client'
 
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useCart } from '../context/CartContext'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import { useRouter } from 'next/navigation'
+import { supabase } from '../../lib/supabase/config'
 
 export default function CartPage() {
   const { cart, addToCart, removeFromCart, clearCart } = useCart()
   const router = useRouter()
+  const [shippingFee, setShippingFee] = useState(0)
+  const [shippingLoading, setShippingLoading] = useState(true)
+
+  useEffect(() => {
+    fetchShippingFee()
+  }, [])
+
+  const fetchShippingFee = async () => {
+    setShippingLoading(true)
+    try {
+      const { data, error } = await supabase
+        .from('settings')
+        .select('value')
+        .eq('key', 'shipping_fee')
+        .single()
+      if (error) throw error
+      setShippingFee(Number(data?.value) || 0)
+    } catch (err) {
+      setShippingFee(0)
+    } finally {
+      setShippingLoading(false)
+    }
+  }
 
   const handleQuantityChange = (product, delta) => {
     if (product.quantity + delta <= 0) return
@@ -86,6 +110,12 @@ export default function CartPage() {
                     <span className="text-lg font-medium">Subtotal</span>
                     <span className="text-2xl font-bold">${subtotal.toFixed(2)}</span>
                   </div>
+                  {cart.length > 0 && (
+                    <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-6 w-full md:w-auto">
+                      <span className="text-lg font-medium">Shipping</span>
+                      <span className="text-2xl font-bold">${shippingFee.toFixed(2)}</span>
+                    </div>
+                  )}
                   <div className="flex gap-2 w-full  mt-4 md:mt-0">
                     <button
                       className="flex-1 border border-gray-300 text-gray-700 py-2 rounded-lg text-center hover:bg-gray-100 transition-colors text-base font-medium"
@@ -94,10 +124,11 @@ export default function CartPage() {
                       Clear Cart
                     </button>
                     <button
-                      className="flex-1 bg-black text-white py-2 rounded-lg text-center hover:bg-gray-800 transition-colors font-semibold text-base"
+                      className="flex-1 bg-black text-white py-2 rounded-lg text-center hover:bg-gray-800 transition-colors font-semibold text-base disabled:opacity-50 disabled:cursor-not-allowed"
                       onClick={handleCheckout}
+                      disabled={shippingLoading}
                     >
-                      Checkout
+                      {shippingLoading ? 'Loading...' : 'Checkout'}
                     </button>
                   </div>
                 </div>
